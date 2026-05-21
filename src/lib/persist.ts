@@ -1,5 +1,6 @@
 const KEY_PEER_ID = 'snapshare.peerId'
-const KEY_LAST_PAIR = 'snapshare.lastPair'
+const KEY_LAST_PAIRS = 'snapshare.lastPairs'
+const MAX_REMEMBERED = 8
 
 export interface LastPair {
   peerId: string
@@ -15,18 +16,37 @@ export function savePeerId(id: string): void {
   try { localStorage.setItem(KEY_PEER_ID, id) } catch { /* noop */ }
 }
 
-export function loadLastPair(): LastPair | null {
+export function loadLastPairs(): LastPair[] {
   try {
-    const raw = localStorage.getItem(KEY_LAST_PAIR)
-    if (!raw) return null
-    return JSON.parse(raw) as LastPair
-  } catch { return null }
+    const raw = localStorage.getItem(KEY_LAST_PAIRS)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((p): p is LastPair => p && typeof p.peerId === 'string')
+  } catch { return [] }
 }
 
-export function saveLastPair(pair: LastPair): void {
-  try { localStorage.setItem(KEY_LAST_PAIR, JSON.stringify(pair)) } catch { /* noop */ }
+export function saveLastPairs(pairs: LastPair[]): void {
+  try {
+    const trimmed = pairs.slice(0, MAX_REMEMBERED)
+    localStorage.setItem(KEY_LAST_PAIRS, JSON.stringify(trimmed))
+  } catch { /* noop */ }
 }
 
-export function clearLastPair(): void {
-  try { localStorage.removeItem(KEY_LAST_PAIR) } catch { /* noop */ }
+export function upsertLastPair(pair: LastPair): LastPair[] {
+  const existing = loadLastPairs()
+  const filtered = existing.filter((p) => p.peerId !== pair.peerId)
+  const next = [pair, ...filtered].slice(0, MAX_REMEMBERED)
+  saveLastPairs(next)
+  return next
+}
+
+export function removeLastPair(peerId: string): LastPair[] {
+  const next = loadLastPairs().filter((p) => p.peerId !== peerId)
+  saveLastPairs(next)
+  return next
+}
+
+export function clearLastPairs(): void {
+  try { localStorage.removeItem(KEY_LAST_PAIRS) } catch { /* noop */ }
 }

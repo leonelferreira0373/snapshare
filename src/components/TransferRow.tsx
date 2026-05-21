@@ -1,8 +1,10 @@
 import { Transfer } from '../hooks/usePeer'
+import { deviceName } from '../lib/deviceName'
 import { ArrowDown, ArrowUp, Check, Download, X } from 'lucide-react'
 
 interface Props {
   transfer: Transfer
+  remotePlatform?: string
 }
 
 function formatBytes(n: number): string {
@@ -12,9 +14,11 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
-export function TransferRow({ transfer }: Props) {
+export function TransferRow({ transfer, remotePlatform }: Props) {
   const pct = transfer.size > 0 ? Math.min(100, Math.round((transfer.bytes / transfer.size) * 100)) : 0
   const Icon = transfer.direction === 'in' ? ArrowDown : ArrowUp
+  const peerName = deviceName(transfer.peerId, remotePlatform)
+  const dirLabel = transfer.direction === 'in' ? 'from' : 'to'
 
   return (
     <div className="flex flex-col gap-1.5 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3">
@@ -34,12 +38,14 @@ export function TransferRow({ transfer }: Props) {
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-neutral-500">
-        <span>{transfer.status === 'done' ? 'Complete' : `${pct}%`}</span>
+        <span className="truncate">
+          {transfer.status === 'done' ? 'Complete' : `${pct}%`} · {dirLabel} {peerName}
+        </span>
         {transfer.direction === 'in' && transfer.status === 'done' && transfer.downloadUrl && (
           <a
             href={transfer.downloadUrl}
             download={transfer.name}
-            className="flex items-center gap-1 text-neutral-300 hover:text-white"
+            className="flex shrink-0 items-center gap-1 text-neutral-300 hover:text-white"
           >
             <Download className="h-3 w-3" /> Save again
           </a>

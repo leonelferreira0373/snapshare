@@ -22,15 +22,14 @@ export default function App() {
     <HomeScreen
       myId={peer.myId}
       status={peer.status}
-      remoteId={peer.remoteId}
-      remoteMeta={peer.remoteMeta}
-      isConnected={peer.isConnected}
+      peers={peer.peers}
       transfers={peer.transfers}
-      lastPair={peer.lastPair}
+      lastPairs={peer.lastPairs}
       error={peer.error}
       onConnect={peer.connect}
-      onDisconnect={peer.disconnect}
-      onForgetLastPair={peer.forgetLastPair}
+      onDisconnectPeer={peer.disconnectPeer}
+      onDisconnectAll={peer.disconnectAll}
+      onForgetPair={peer.forgetPair}
       onSendFiles={peer.sendFiles}
     />
   )
