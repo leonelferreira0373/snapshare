@@ -85,6 +85,8 @@ export function usePeer(): UsePeerResult {
   const [myId, setMyId] = useState<string | null>(null)
   const [status, setStatus] = useState<PeerStatus>('connecting')
   const [peers, setPeers] = useState<PairedPeer[]>([])
+  const peersRef = useRef<PairedPeer[]>([])
+  peersRef.current = peers
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [error, setError] = useState<string | null>(null)
   const [lastPairs, setLastPairs] = useState<LastPair[]>(() => loadLastPairs())
@@ -278,7 +280,7 @@ export function usePeer(): UsePeerResult {
         try { peer.reconnect() } catch { /* noop */ }
       }
       // For every peer we *should* be connected to but currently aren't, retry.
-      for (const p of peers) {
+      for (const p of peersRef.current) {
         if (p.status === 'reconnecting' &&
             !connectionsRef.current.get(p.peerId) &&
             !pendingConnsRef.current.get(p.peerId)) {
@@ -294,7 +296,7 @@ export function usePeer(): UsePeerResult {
       document.removeEventListener('visibilitychange', onVisibility)
       peerRef.current?.destroy()
     }
-  }, [attachConnection, peers])
+  }, [attachConnection])
 
   const sendFileToConn = useCallback(async (conn: DataConnection, file: File, transferId: string) => {
     const meta: MetaMsg = {

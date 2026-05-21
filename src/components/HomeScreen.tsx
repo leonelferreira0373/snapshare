@@ -117,19 +117,12 @@ export function HomeScreen({
 
   return (
     <div className="mx-auto flex h-full max-w-md flex-col px-4 py-4">
-      {/* Header: always-visible code + QR thumb */}
+      {/* Header: code + copy + QR toggle */}
       <header className="flex flex-col gap-3 rounded-2xl border border-neutral-800 bg-neutral-900/50 p-3">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setQrExpanded((v) => !v)}
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-white p-1"
-            aria-label="Show QR"
-          >
-            <QRDisplay value={url} size={48} />
-          </button>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Your code</p>
-            <p className="font-mono text-xl font-bold tracking-[0.2em] text-white">
+            <p className="font-mono text-2xl font-bold tracking-[0.2em] text-white">
               {formatCode(shortCode)}
             </p>
           </div>
@@ -142,16 +135,17 @@ export function HomeScreen({
           </button>
           <button
             onClick={() => setQrExpanded((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-800 text-neutral-300 active:bg-neutral-700"
+            className="flex items-center gap-1 rounded-md bg-neutral-800 px-2.5 py-1.5 text-xs text-neutral-300 active:bg-neutral-700"
             aria-label="Toggle QR"
           >
-            {qrExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <QrCode className="h-3.5 w-3.5" />
+            {qrExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
         </div>
 
         {qrExpanded && (
           <div className="flex flex-col items-center gap-2 border-t border-neutral-800 pt-3">
-            <QRDisplay value={url} size={200} />
+            <QRDisplay value={url} size={220} />
             <p className="text-xs text-neutral-500">Scan from any other device</p>
           </div>
         )}
