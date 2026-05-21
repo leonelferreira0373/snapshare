@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { usePeer } from './hooks/usePeer'
 import { HomeScreen } from './components/HomeScreen'
+import { Footer } from './components/Footer'
 
 export default function App() {
   const peer = usePeer()
@@ -19,18 +20,21 @@ export default function App() {
   }, [peer.status, peer])
 
   return (
-    <HomeScreen
-      myId={peer.myId}
-      status={peer.status}
-      peers={peer.peers}
-      transfers={peer.transfers}
-      lastPairs={peer.lastPairs}
-      error={peer.error}
-      onConnect={peer.connect}
-      onDisconnectPeer={peer.disconnectPeer}
-      onDisconnectAll={peer.disconnectAll}
-      onForgetPair={peer.forgetPair}
-      onSendFiles={peer.sendFiles}
-    />
+    <>
+      <HomeScreen
+        myId={peer.myId}
+        status={peer.status}
+        peers={peer.peers}
+        transfers={peer.transfers}
+        lastPairs={peer.lastPairs}
+        error={peer.error}
+        onConnect={peer.connect}
+        onDisconnectPeer={peer.disconnectPeer}
+        onDisconnectAll={peer.disconnectAll}
+        onForgetPair={peer.forgetPair}
+        onSendFiles={peer.sendFiles}
+      />
+      <Footer />
+    </>
   )
 }

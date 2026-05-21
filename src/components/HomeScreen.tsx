@@ -321,16 +321,16 @@ export function HomeScreen({
   )
 
   const transfersPanel = (
-    <section className="flex flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/30 p-3 lg:min-h-0 lg:flex-1">
+    <section className="flex min-h-[280px] flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/30 p-3 lg:min-h-[calc(100vh-14rem)]">
       <div className="flex items-center gap-2">
         <Inbox className="h-4 w-4 text-neutral-400" />
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-300">
           Transfers {transfers.length > 0 && <span className="text-neutral-500">({transfers.length})</span>}
         </p>
       </div>
-      <div className="flex flex-col gap-2 lg:overflow-y-auto lg:pr-1">
+      <div className="flex flex-1 flex-col gap-2">
         {transfers.length === 0 ? (
-          <div className="flex flex-col items-center gap-1 py-8 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-1 py-8 text-center">
             <p className="text-xs text-neutral-600">No transfers yet</p>
             <p className="text-[11px] text-neutral-700">Files sent or received will appear here</p>
           </div>
@@ -367,9 +367,9 @@ export function HomeScreen({
       </div>
 
       {/* DESKTOP / WIDE layout (2 columns, transfers as main pane) */}
-      <div className="hidden h-[calc(100vh-3rem)] grid-cols-[minmax(320px,400px)_minmax(0,1fr)] gap-6 lg:grid">
-        {/* LEFT — controls */}
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+      <div className="hidden grid-cols-[minmax(320px,400px)_minmax(0,1fr)] gap-6 lg:grid">
+        {/* LEFT — controls (sticky so the code stays visible while scrolling) */}
+        <aside className="flex flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
           {codeHeader}
           {peersList}
           {recentChips}
@@ -378,7 +378,7 @@ export function HomeScreen({
         </aside>
 
         {/* RIGHT — transfers main pane + drop zone */}
-        <main className="flex min-h-0 flex-col gap-3">
+        <main className="flex flex-col gap-3">
           {dropZone}
           {addFilesBtn}
           {pendingNote}
