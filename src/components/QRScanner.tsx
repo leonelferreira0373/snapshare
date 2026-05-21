@@ -102,7 +102,7 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur">
+    <div className="animate-slide-in-right fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur">
       <header className="flex items-center justify-between px-4 py-3">
         <p className="text-sm font-medium text-white">{t('scan_qr_code')}</p>
         <button

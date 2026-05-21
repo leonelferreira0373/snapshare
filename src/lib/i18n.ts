@@ -77,6 +77,10 @@ const pt: Dict = {
   made_in: 'Feito em Luanda',
   language: 'Idioma',
   theme: 'Tema',
+  install_app: 'Instalar app',
+  install_hint: 'Adicionar ao ecrã principal',
+  installed: 'App instalada',
+  install_ios_hint: 'Para instalar no iOS: toca em Partilhar (□↑) → "Adicionar ao Ecrã Principal".',
 }
 
 const en: Dict = {
@@ -140,6 +144,10 @@ const en: Dict = {
   made_in: 'Made in Luanda',
   language: 'Language',
   theme: 'Theme',
+  install_app: 'Install app',
+  install_hint: 'Add to home screen',
+  installed: 'App installed',
+  install_ios_hint: 'On iOS: tap Share (□↑) → "Add to Home Screen".',
 }
 
 export const dictionaries: Record<Lang, Dict> = { pt, en }

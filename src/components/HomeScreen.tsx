@@ -9,7 +9,7 @@ import type { LastPair } from '../lib/persist'
 import type { Transfer, PairedPeer, PeerStatus } from '../hooks/usePeer'
 import {
   Loader2, Link2, AlertTriangle, Copy, Check, QrCode, ChevronDown, ChevronUp,
-  Upload, LogOut, FileUp, RefreshCcw, X, Users, Inbox, Minimize2,
+  Upload, LogOut, FileUp, RefreshCcw, X, Users, Inbox, Minimize2, ScanLine,
 } from 'lucide-react'
 import { BackToTop } from './BackToTop'
 
@@ -27,16 +27,17 @@ interface Props {
   onSendFiles: (files: File[] | FileList) => Promise<void>
 }
 
-// Tailwind class shortcuts for dual-mode surfaces
-const SURFACE = 'bg-white border-slate-200 dark:bg-neutral-900/50 dark:border-neutral-800'
-const SURFACE_SOFT = 'bg-slate-50 border-slate-200 dark:bg-neutral-900/40 dark:border-neutral-800'
-const SURFACE_INNER = 'bg-slate-100 dark:bg-neutral-900/60'
-const TEXT_BASE = 'text-slate-900 dark:text-white'
-const TEXT_MUTED = 'text-slate-500 dark:text-neutral-400'
-const TEXT_SOFT = 'text-slate-400 dark:text-neutral-500'
-const TEXT_FAINT = 'text-slate-300 dark:text-neutral-600'
-const PILL_BTN = 'bg-slate-200 text-slate-700 active:bg-slate-300 dark:bg-neutral-800 dark:text-neutral-300 dark:active:bg-neutral-700'
-const INPUT_CLS = 'border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-slate-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white dark:placeholder-neutral-700 dark:focus:border-neutral-500'
+// Tailwind class shortcuts for dual-mode surfaces.
+// Light mode = zinc palette + subtle shadows for lift. Dark = neutral palette, flat.
+const SURFACE = 'bg-white border-zinc-200 shadow-sm shadow-zinc-900/[0.03] dark:bg-neutral-900/50 dark:border-neutral-800 dark:shadow-none'
+const SURFACE_SOFT = 'bg-zinc-50 border-zinc-200 dark:bg-neutral-900/40 dark:border-neutral-800'
+const SURFACE_INNER = 'bg-zinc-100 dark:bg-neutral-900/60'
+const TEXT_BASE = 'text-zinc-900 dark:text-white'
+const TEXT_MUTED = 'text-zinc-500 dark:text-neutral-400'
+const TEXT_SOFT = 'text-zinc-400 dark:text-neutral-500'
+const TEXT_FAINT = 'text-zinc-300 dark:text-neutral-600'
+const PILL_BTN = 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 active:bg-zinc-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:active:bg-neutral-700'
+const INPUT_CLS = 'border-zinc-200 bg-white text-zinc-900 placeholder-zinc-300 focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/5 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white dark:placeholder-neutral-700 dark:focus:border-neutral-500 dark:focus:ring-0'
 
 export function HomeScreen({
   myId, status, peers, transfers, lastPairs, error,
@@ -54,10 +55,10 @@ export function HomeScreen({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const TRANSFERS_PREVIEW_LIMIT = 6
-  const anythingExpanded = qrExpanded || showAllTransfers
+  const anythingExpanded = showAllTransfers
 
   function collapseAll() {
-    setQrExpanded(false)
+    // Keep QR expansion untouched — it's a deliberate visibility choice.
     setShowAllTransfers(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -163,6 +164,13 @@ export function HomeScreen({
           {copied ? <Check className="h-4 w-4 text-emerald-500 dark:text-emerald-400" /> : <Copy className="h-4 w-4" />}
         </button>
         <button
+          onClick={() => setScannerOpen(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-600 text-white shadow-sm transition-colors hover:bg-emerald-700 active:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400 dark:active:bg-emerald-400"
+          aria-label={t('scan_qr_camera_screen')}
+        >
+          <ScanLine className="h-4 w-4" />
+        </button>
+        <button
           onClick={() => setQrExpanded((v) => !v)}
           className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs ${PILL_BTN}`}
           aria-label={t('toggle_qr')}
@@ -173,7 +181,7 @@ export function HomeScreen({
       </div>
 
       {qrExpanded && (
-        <div className="flex flex-col items-center gap-2 border-t border-slate-200 pt-3 dark:border-neutral-800">
+        <div className="flex flex-col items-center gap-2 border-t border-zinc-200 pt-3 dark:border-neutral-800">
           <QRDisplay value={url} size={220} />
           <p className={`text-xs ${TEXT_MUTED}`}>{t('scan_other')}</p>
         </div>
@@ -191,7 +199,7 @@ export function HomeScreen({
         {peers.length > 1 && (
           <button
             onClick={onDisconnectAll}
-            className={`rounded-md px-2 py-1 text-[10px] uppercase tracking-wider ${TEXT_MUTED} active:bg-slate-200 dark:active:bg-neutral-900`}
+            className={`rounded-md px-2 py-1 text-[10px] uppercase tracking-wider ${TEXT_MUTED} hover:bg-zinc-200 dark:hover:bg-neutral-900`}
           >
             {t('disconnect_all')}
           </button>
@@ -213,7 +221,7 @@ export function HomeScreen({
               {(reconnecting || connecting) && <Loader2 className={`h-3 w-3 animate-spin ${TEXT_SOFT}`} />}
               <button
                 onClick={() => onDisconnectPeer(p.peerId)}
-                className={`rounded-md p-1 ${TEXT_MUTED} active:bg-slate-200 dark:active:bg-neutral-800`}
+                className={`rounded-md p-1 ${TEXT_MUTED} hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-neutral-800 dark:hover:text-white`}
                 aria-label={t('disconnect')}
               >
                 <LogOut className="h-3.5 w-3.5" />
@@ -231,18 +239,18 @@ export function HomeScreen({
       {reconnectableLastPairs.map((pair) => (
         <div
           key={pair.peerId}
-          className="flex items-center justify-between gap-2 rounded-xl border border-emerald-300/40 bg-emerald-50 px-3 py-2 dark:border-emerald-900/30 dark:bg-emerald-950/20"
+          className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 dark:border-emerald-900/30 dark:bg-emerald-950/20"
         >
           <div className="flex min-w-0 items-center gap-2">
             <RefreshCcw className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            <p className="truncate text-xs text-emerald-700 dark:text-emerald-200">
+            <p className="truncate text-xs text-emerald-800 dark:text-emerald-200">
               <span className="font-medium">{deviceName(pair.peerId, pair.platform)}</span>
             </p>
           </div>
           <div className="flex gap-1">
             <button
               onClick={() => onConnect(pair.peerId)}
-              className="rounded-md bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-emerald-950 active:bg-emerald-400"
+              className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 active:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400 dark:active:bg-emerald-400"
             >
               {t('pair')}
             </button>
@@ -279,24 +287,17 @@ export function HomeScreen({
         <button
           type="submit"
           disabled={normalizeCode(codeInput).length !== 6}
-          className="flex items-center gap-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white active:bg-slate-700 disabled:bg-slate-200 disabled:text-slate-400 dark:bg-white dark:text-black dark:active:bg-neutral-200 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-500"
+          className="flex items-center gap-1 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:shadow-none dark:bg-white dark:text-black dark:hover:bg-neutral-200 dark:active:bg-neutral-200 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-500"
         >
           <Link2 className="h-4 w-4" /> {t('pair')}
         </button>
       </div>
-      <button
-        type="button"
-        onClick={() => setScannerOpen(true)}
-        className={`flex items-center justify-center gap-2 rounded-lg border py-2.5 text-xs font-medium ${SURFACE_SOFT} ${TEXT_BASE} active:bg-slate-100 dark:active:bg-neutral-900`}
-      >
-        <QrCode className="h-4 w-4" /> {t('scan_qr_camera_screen')}
-      </button>
     </form>
   )
 
   const errorBox = error && (
-    <div className="flex items-start gap-2 rounded-lg border border-red-300/50 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
       <span>{translateError(error)}</span>
     </div>
   )
@@ -309,10 +310,10 @@ export function HomeScreen({
       onClick={hasOpenPeer ? handlePick : undefined}
       className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed py-8 text-center transition-colors ${
         dragOver
-          ? 'border-slate-900 bg-slate-100 cursor-pointer dark:border-white dark:bg-neutral-900'
+          ? 'border-zinc-900 bg-zinc-100 cursor-pointer dark:border-white dark:bg-neutral-900'
           : hasOpenPeer
-            ? 'border-slate-300 hover:border-slate-400 cursor-pointer dark:border-neutral-800 dark:hover:border-neutral-700'
-            : 'border-slate-200 opacity-60 cursor-not-allowed dark:border-neutral-900'
+            ? 'border-zinc-300 bg-white/40 hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer dark:border-neutral-800 dark:bg-transparent dark:hover:border-neutral-700 dark:hover:bg-transparent'
+            : 'border-zinc-200 bg-zinc-50/50 opacity-70 cursor-not-allowed dark:border-neutral-900 dark:bg-transparent dark:opacity-60'
       }`}
     >
       <div className={`rounded-full p-2.5 ${SURFACE_INNER}`}>
@@ -339,7 +340,7 @@ export function HomeScreen({
   const addFilesBtn = hasOpenPeer && (
     <button
       onClick={handlePick}
-      className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white active:bg-slate-700 dark:bg-white dark:text-black dark:active:bg-neutral-200"
+      className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800 active:bg-zinc-700 dark:bg-white dark:text-black dark:shadow-none dark:hover:bg-neutral-200 dark:active:bg-neutral-200"
     >
       <FileUp className="h-4 w-4" />
       {openPeers.length === 1 ? t('add_files') : t('send_to_n_devices', { n: openPeers.length })}
@@ -347,7 +348,7 @@ export function HomeScreen({
   )
 
   const pendingNote = pendingFiles.length > 0 && (
-    <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
       {pendingFiles.length} {pendingFiles.length === 1 ? t('files_waiting') : t('files_waiting_plural')}
     </p>
   )
@@ -368,7 +369,7 @@ export function HomeScreen({
         {anythingExpanded && (
           <button
             onClick={collapseAll}
-            className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] uppercase tracking-wider ${SURFACE_SOFT} ${TEXT_MUTED} hover:text-slate-800 dark:hover:text-neutral-200`}
+            className={`flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[10px] uppercase tracking-wider ${TEXT_MUTED} hover:border-zinc-300 hover:text-zinc-900 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:text-neutral-200`}
           >
             <Minimize2 className="h-3 w-3" /> {t('collapse_all')}
           </button>
@@ -396,7 +397,7 @@ export function HomeScreen({
             {hiddenCount > 0 && (
               <button
                 onClick={() => setShowAllTransfers((v) => !v)}
-                className={`mt-1 flex items-center justify-center gap-1.5 rounded-lg border py-2.5 text-xs font-medium ${SURFACE_SOFT} ${TEXT_BASE} hover:opacity-90`}
+                className={`mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white py-2.5 text-xs font-medium ${TEXT_BASE} hover:border-zinc-300 hover:bg-zinc-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800`}
               >
                 {showAllTransfers ? (
                   <><ChevronUp className="h-3.5 w-3.5" /> {t('show_less')}</>
@@ -412,7 +413,7 @@ export function HomeScreen({
   )
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-4 pt-16 lg:px-6 lg:pb-6 lg:pt-20">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-4 lg:px-6 lg:pb-6 lg:pt-6">
       {/* Mobile */}
       <div className="flex flex-col gap-3 lg:hidden">
         {codeHeader}
@@ -428,7 +429,7 @@ export function HomeScreen({
 
       {/* Desktop */}
       <div className="hidden grid-cols-[minmax(320px,400px)_minmax(0,1fr)] gap-6 lg:grid">
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-20 lg:self-start">
+        <aside className="flex flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
           {codeHeader}
           {peersList}
           {recentChips}
