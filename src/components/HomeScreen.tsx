@@ -10,11 +10,12 @@ import type { Transfer, PairedPeer, PeerStatus } from '../hooks/usePeer'
 import {
   Loader2, Link2, AlertTriangle, Copy, Check, QrCode, ChevronDown, ChevronUp,
   Upload, LogOut, FileUp, RefreshCcw, X, Users, Inbox, Minimize2, ScanLine,
-  ClipboardList,
+  ClipboardList, Sunrise,
 } from 'lucide-react'
 import { BackToTop } from './BackToTop'
 import { GlobalDropOverlay } from './GlobalDropOverlay'
 import { useClipboardCapture, loadClipboardEnabled, saveClipboardEnabled } from '../hooks/useClipboardCapture'
+import { useWakeLock, loadWakeLockEnabled, saveWakeLockEnabled, isWakeLockSupported } from '../hooks/useWakeLock'
 
 interface Props {
   myId: string | null
@@ -58,6 +59,8 @@ export function HomeScreen({
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [clipboardOn, setClipboardOn] = useState<boolean>(() => loadClipboardEnabled())
   const [clipboardError, setClipboardError] = useState<string | null>(null)
+  const [stayAwakeOn, setStayAwakeOn] = useState<boolean>(() => loadWakeLockEnabled())
+  const wakeLockSupported = isWakeLockSupported()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasOpenPeerRef = useRef(false)
   const onCapturedRef = useRef<(file: File) => void>(() => undefined)
@@ -81,6 +84,15 @@ export function HomeScreen({
   const openPeers = peers.filter((p) => p.status === 'open')
   const hasOpenPeer = openPeers.length > 0
   const hasAnyPeer = peers.length > 0
+
+  // Hold the screen Wake Lock while paired AND the user opted in
+  useWakeLock(stayAwakeOn && hasAnyPeer)
+
+  function toggleStayAwake() {
+    const next = !stayAwakeOn
+    setStayAwakeOn(next)
+    saveWakeLockEnabled(next)
+  }
 
   // Keep refs synced with latest values so the clipboard callback can read them
   hasOpenPeerRef.current = hasOpenPeer
@@ -216,6 +228,20 @@ export function HomeScreen({
         >
           <ClipboardList className="h-4 w-4" />
         </button>
+        {wakeLockSupported && (
+          <button
+            onClick={toggleStayAwake}
+            className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+              stayAwakeOn
+                ? 'bg-amber-500 text-white shadow-sm hover:bg-amber-600 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400'
+                : PILL_BTN
+            }`}
+            aria-label={t('stay_awake')}
+            title={stayAwakeOn ? t('stay_awake_on') : t('stay_awake_off')}
+          >
+            <Sunrise className="h-4 w-4" />
+          </button>
+        )}
         <button
           onClick={() => setQrExpanded((v) => !v)}
           className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs ${PILL_BTN}`}
@@ -442,9 +468,9 @@ export function HomeScreen({
             {visibleTransfers.map((tr) => {
               const peer = peers.find((p) => p.peerId === tr.peerId)
               const lastPair = lastPairs.find((p) => p.peerId === tr.peerId)
-              const canResend = tr.status === 'done' && (
-                tr.direction === 'out' || (tr.direction === 'in' && !!tr.downloadUrl)
-              )
+              // Resend only on outgoing — it's a "send this again" action,
+              // not a "forward" one. Only the original sender sees it.
+              const canResend = tr.status === 'done' && tr.direction === 'out'
               return (
                 <TransferRow
                   key={tr.id}
