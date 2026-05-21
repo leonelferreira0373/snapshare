@@ -14,26 +14,31 @@ export default function App() {
     if (target) {
       autoPairAttempted.current = true
       peer.connect(target)
-      // Clean query so refresh doesn't loop
       const clean = window.location.pathname
       window.history.replaceState({}, '', clean)
     }
   }, [peer.status, peer])
 
-  if (peer.status === 'paired' && peer.connection && peer.remoteId) {
+  if ((peer.status === 'paired' || peer.status === 'reconnecting') && peer.remoteId) {
     return (
       <SessionScreen
         connection={peer.connection}
         remoteId={peer.remoteId}
+        remotePlatform={peer.remoteMeta?.platform}
+        isReconnecting={peer.status === 'reconnecting'}
         onDisconnect={peer.disconnect}
       />
     )
   }
 
+  const screenStatus =
+    peer.status === 'connecting' ? 'connecting' :
+    peer.status === 'error' ? 'error' : 'ready'
+
   return (
     <PairingScreen
       myId={peer.myId}
-      status={peer.status === 'error' ? 'error' : peer.status === 'paired' ? 'ready' : peer.status}
+      status={screenStatus}
       error={peer.error}
       onConnect={peer.connect}
     />

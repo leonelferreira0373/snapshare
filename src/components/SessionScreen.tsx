@@ -1,22 +1,33 @@
-import { useRef, useState, DragEvent } from 'react'
+import { useRef, useState, useEffect, DragEvent } from 'react'
 import { DataConnection } from 'peerjs'
 import { useFileTransfer } from '../hooks/useFileTransfer'
 import { TransferRow } from './TransferRow'
 import { deviceName } from '../lib/deviceName'
-import { Upload, LogOut, FileUp } from 'lucide-react'
+import { Upload, LogOut, FileUp, Loader2 } from 'lucide-react'
 
 interface Props {
-  connection: DataConnection
+  connection: DataConnection | null
   remoteId: string
+  remotePlatform: string | undefined
+  isReconnecting: boolean
   onDisconnect: () => void
 }
 
-export function SessionScreen({ connection, remoteId, onDisconnect }: Props) {
+export function SessionScreen({ connection, remoteId, remotePlatform, isReconnecting, onDisconnect }: Props) {
   const { transfers, sendFiles } = useFileTransfer(connection)
   const [dragOver, setDragOver] = useState(false)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const remoteName = deviceName(remoteId)
+  // If files were picked while disconnected, flush them when reconnected
+  useEffect(() => {
+    if (connection && pendingFiles.length > 0) {
+      sendFiles(pendingFiles)
+      setPendingFiles([])
+    }
+  }, [connection, pendingFiles, sendFiles])
+
+  const remoteName = deviceName(remoteId, remotePlatform)
 
   function handlePick() {
     fileInputRef.current?.click()
@@ -24,7 +35,12 @@ export function SessionScreen({ connection, remoteId, onDisconnect }: Props) {
 
   function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return
-    sendFiles(files)
+    const arr = Array.from(files)
+    if (!connection) {
+      setPendingFiles((prev) => [...prev, ...arr])
+      return
+    }
+    sendFiles(arr)
   }
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
@@ -37,7 +53,13 @@ export function SessionScreen({ connection, remoteId, onDisconnect }: Props) {
     <div className="mx-auto flex h-full max-w-md flex-col px-4 py-5">
       <header className="flex items-center justify-between gap-3 pb-4">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-widest text-neutral-500">Paired with</p>
+          <p className="text-xs uppercase tracking-widest text-neutral-500">
+            {isReconnecting ? (
+              <span className="inline-flex items-center gap-1.5 text-amber-400">
+                <Loader2 className="h-3 w-3 animate-spin" /> Reconnecting…
+              </span>
+            ) : 'Paired with'}
+          </p>
           <p className="truncate text-base font-medium">{remoteName}</p>
         </div>
         <button
@@ -77,6 +99,12 @@ export function SessionScreen({ connection, remoteId, onDisconnect }: Props) {
       >
         <FileUp className="h-4 w-4" /> Add files
       </button>
+
+      {pendingFiles.length > 0 && (
+        <p className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-200">
+          {pendingFiles.length} file{pendingFiles.length === 1 ? '' : 's'} waiting for reconnect…
+        </p>
+      )}
 
       <div className="mt-5 flex flex-col gap-2 overflow-y-auto pb-6">
         {transfers.length === 0 && (

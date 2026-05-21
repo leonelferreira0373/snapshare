@@ -16,20 +16,9 @@ function hash(s: string): number {
   return Math.abs(h)
 }
 
-export function deviceName(peerId: string): string {
+export function deviceName(peerId: string, platform?: string): string {
   const h = hash(peerId)
   const adj = ADJECTIVES[h % ADJECTIVES.length]
   const animal = ANIMALS[(h >> 8) % ANIMALS.length]
-  const platform = detectPlatform()
-  return `${adj}-${animal}-${platform}`
-}
-
-function detectPlatform(): string {
-  const ua = navigator.userAgent
-  if (/iPhone|iPad|iPod/.test(ua)) return 'iOS'
-  if (/Android/.test(ua)) return 'Android'
-  if (/Mac/.test(ua)) return 'Mac'
-  if (/Win/.test(ua)) return 'PC'
-  if (/Linux/.test(ua)) return 'Linux'
-  return 'Device'
+  return platform ? `${adj}-${animal}-${platform}` : `${adj}-${animal}`
 }
