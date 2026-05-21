@@ -309,7 +309,12 @@ export function usePeer(): UsePeerResult {
     const rawDc = (conn as unknown as { dataChannel?: RTCDataChannel }).dataChannel
     if (rawDc) rawDc.bufferedAmountLowThreshold = LOW_WATER
 
+    // Report progress at most ~every 1% (or 64 KB, whichever is larger) to
+    // keep React renders cheap on big files but still feel responsive.
+    const reportEvery = Math.max(64 * 1024, Math.floor(file.size / 100) || CHUNK_SIZE)
     let offset = 0
+    let lastReported = 0
+
     while (offset < file.size) {
       const slice = file.slice(offset, offset + CHUNK_SIZE)
       const buf = await slice.arrayBuffer()
@@ -321,39 +326,63 @@ export function usePeer(): UsePeerResult {
       }
       conn.send(buf)
       offset += buf.byteLength
+      if (offset - lastReported >= reportEvery || offset >= file.size) {
+        upsertTransfer(transferId, { bytes: offset })
+        lastReported = offset
+      }
     }
     conn.send(JSON.stringify({ type: 'eof', id: transferId } satisfies EofMsg))
-  }, [])
+  }, [upsertTransfer])
 
-  // Broadcast a file to every paired & open peer in parallel
-  const sendFile = useCallback(async (file: File) => {
+  // Broadcast every file to every paired & open peer.
+  // Pre-creates ALL transfer rows up front (so a multi-file pick shows
+  // every file immediately in the list, not one-at-a-time). Sends serially
+  // per connection (DataChannel can't safely interleave chunks for now)
+  // but in parallel across connections.
+  const sendFiles = useCallback(async (files: FileList | File[]) => {
+    const arr = Array.from(files)
+    if (arr.length === 0) return
     const liveConns = Array.from(connectionsRef.current.values()).filter((c) => c.open)
     if (liveConns.length === 0) return
-    await Promise.all(liveConns.map(async (conn) => {
-      const transferId = crypto.randomUUID()
-      setTransfers((prev) => [
-        ...prev,
-        {
+
+    interface Job { file: File; conn: DataConnection; transferId: string }
+    const jobs: Job[] = []
+    const queuedRows: Transfer[] = []
+    for (const file of arr) {
+      for (const conn of liveConns) {
+        const transferId = crypto.randomUUID()
+        jobs.push({ file, conn, transferId })
+        queuedRows.push({
           id: transferId, peerId: conn.peer, direction: 'out',
           name: file.name, size: file.size,
           mime: file.type || 'application/octet-stream',
           bytes: 0, status: 'transferring',
-        },
-      ])
-      try {
-        await sendFileToConn(conn, file, transferId)
-        upsertTransfer(transferId, { bytes: file.size, status: 'done' })
-      } catch (e) {
-        upsertTransfer(transferId, { status: 'failed', error: String(e) })
+        })
       }
-    }))
-  }, [sendFileToConn, upsertTransfer])
-
-  const sendFiles = useCallback(async (files: FileList | File[]) => {
-    for (const f of Array.from(files)) {
-      await sendFile(f)
     }
-  }, [sendFile])
+    setTransfers((prev) => [...prev, ...queuedRows])
+
+    // Group by connection so each conn drains its queue serially.
+    const byConn = new Map<DataConnection, Job[]>()
+    for (const job of jobs) {
+      const list = byConn.get(job.conn) ?? []
+      list.push(job)
+      byConn.set(job.conn, list)
+    }
+
+    await Promise.all(
+      Array.from(byConn.values()).map(async (list) => {
+        for (const job of list) {
+          try {
+            await sendFileToConn(job.conn, job.file, job.transferId)
+            upsertTransfer(job.transferId, { bytes: job.file.size, status: 'done' })
+          } catch (e) {
+            upsertTransfer(job.transferId, { status: 'failed', error: String(e) })
+          }
+        }
+      }),
+    )
+  }, [sendFileToConn, upsertTransfer])
 
   function connect(target: string) {
     const peer = peerRef.current

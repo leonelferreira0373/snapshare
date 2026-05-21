@@ -10,8 +10,11 @@ import type { Transfer, PairedPeer, PeerStatus } from '../hooks/usePeer'
 import {
   Loader2, Link2, AlertTriangle, Copy, Check, QrCode, ChevronDown, ChevronUp,
   Upload, LogOut, FileUp, RefreshCcw, X, Users, Inbox, Minimize2, ScanLine,
+  ClipboardList,
 } from 'lucide-react'
 import { BackToTop } from './BackToTop'
+import { GlobalDropOverlay } from './GlobalDropOverlay'
+import { useClipboardCapture, loadClipboardEnabled, saveClipboardEnabled } from '../hooks/useClipboardCapture'
 
 interface Props {
   myId: string | null
@@ -52,7 +55,18 @@ export function HomeScreen({
   const [showAllTransfers, setShowAllTransfers] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [clipboardOn, setClipboardOn] = useState<boolean>(() => loadClipboardEnabled())
+  const [clipboardError, setClipboardError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const hasOpenPeerRef = useRef(false)
+  const onCapturedRef = useRef<(file: File) => void>(() => undefined)
+  const onClipboardErrRef = useRef<(msg: string) => void>(() => undefined)
+
+  useClipboardCapture(
+    clipboardOn,
+    (file) => onCapturedRef.current(file),
+    (msg) => onClipboardErrRef.current(msg),
+  )
 
   const TRANSFERS_PREVIEW_LIMIT = 6
   const anythingExpanded = showAllTransfers
@@ -66,6 +80,25 @@ export function HomeScreen({
   const openPeers = peers.filter((p) => p.status === 'open')
   const hasOpenPeer = openPeers.length > 0
   const hasAnyPeer = peers.length > 0
+
+  // Keep refs synced with latest values so the clipboard callback can read them
+  hasOpenPeerRef.current = hasOpenPeer
+  onCapturedRef.current = (file: File) => {
+    if (hasOpenPeerRef.current) onSendFiles([file])
+    else setPendingFiles((prev) => [...prev, file])
+  }
+  onClipboardErrRef.current = (msg: string) => {
+    setClipboardError(msg)
+    setClipboardOn(false)
+    saveClipboardEnabled(false)
+  }
+
+  function toggleClipboard() {
+    const next = !clipboardOn
+    setClipboardOn(next)
+    saveClipboardEnabled(next)
+    if (next) setClipboardError(null)
+  }
 
   useEffect(() => {
     if (hasOpenPeer && pendingFiles.length > 0) {
@@ -171,6 +204,18 @@ export function HomeScreen({
           <ScanLine className="h-4 w-4" />
         </button>
         <button
+          onClick={toggleClipboard}
+          className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+            clipboardOn
+              ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400'
+              : PILL_BTN
+          }`}
+          aria-label={t('clipboard_capture')}
+          title={clipboardOn ? t('clipboard_on') : t('clipboard_off')}
+        >
+          <ClipboardList className="h-4 w-4" />
+        </button>
+        <button
           onClick={() => setQrExpanded((v) => !v)}
           className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs ${PILL_BTN}`}
           aria-label={t('toggle_qr')}
@@ -208,9 +253,9 @@ export function HomeScreen({
       {peers.map((p) => {
         const reconnecting = p.status === 'reconnecting'
         const connecting = p.status === 'connecting'
-        const dot = p.status === 'open' ? 'bg-emerald-400'
-          : reconnecting ? 'bg-amber-400 animate-pulse'
-            : 'bg-neutral-400 animate-pulse'
+        const dot = p.status === 'open' ? 'bg-emerald-500 dark:bg-emerald-400'
+          : reconnecting ? 'bg-amber-500 animate-pulse dark:bg-amber-400'
+            : 'bg-zinc-400 animate-pulse dark:bg-neutral-500'
         return (
           <div key={p.peerId} className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${SURFACE_INNER}`}>
             <div className="flex min-w-0 items-center gap-2">
@@ -295,10 +340,20 @@ export function HomeScreen({
     </form>
   )
 
-  const errorBox = error && (
-    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
-      <span>{translateError(error)}</span>
+  const errorBox = (error || clipboardError) && (
+    <div className="flex flex-col gap-2">
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+          <span>{translateError(error)}</span>
+        </div>
+      )}
+      {clipboardError && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>{t('clipboard_permission')}</span>
+        </div>
+      )}
     </div>
   )
 
@@ -310,10 +365,10 @@ export function HomeScreen({
       onClick={hasOpenPeer ? handlePick : undefined}
       className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed py-8 text-center transition-colors ${
         dragOver
-          ? 'border-zinc-900 bg-zinc-100 cursor-pointer dark:border-white dark:bg-neutral-900'
+          ? 'border-emerald-500 bg-emerald-50 cursor-pointer dark:border-emerald-400 dark:bg-emerald-950/30'
           : hasOpenPeer
-            ? 'border-zinc-300 bg-white/40 hover:border-zinc-400 hover:bg-zinc-50 cursor-pointer dark:border-neutral-800 dark:bg-transparent dark:hover:border-neutral-700 dark:hover:bg-transparent'
-            : 'border-zinc-200 bg-zinc-50/50 opacity-70 cursor-not-allowed dark:border-neutral-900 dark:bg-transparent dark:opacity-60'
+            ? 'border-zinc-300 bg-white hover:border-zinc-900 hover:bg-zinc-50 cursor-pointer dark:border-neutral-700 dark:bg-neutral-900/40 dark:hover:border-neutral-500 dark:hover:bg-neutral-900/60'
+            : 'border-zinc-200 bg-zinc-50 opacity-60 cursor-not-allowed dark:border-neutral-900 dark:bg-transparent'
       }`}
     >
       <div className={`rounded-full p-2.5 ${SURFACE_INNER}`}>
@@ -448,6 +503,12 @@ export function HomeScreen({
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onDecode={handleScannerDecode}
+      />
+
+      <GlobalDropOverlay
+        hasOpenPeer={hasOpenPeer}
+        onFiles={(files) => onSendFiles(files)}
+        pendingFiles={(files) => setPendingFiles((prev) => [...prev, ...files])}
       />
 
       <BackToTop />

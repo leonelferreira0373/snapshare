@@ -81,6 +81,10 @@ const pt: Dict = {
   install_hint: 'Adicionar ao ecrã principal',
   installed: 'App instalada',
   install_ios_hint: 'Para instalar no iOS: toca em Partilhar (□↑) → "Adicionar ao Ecrã Principal".',
+  clipboard_capture: 'Captura da área de transferência',
+  clipboard_on: 'Captura ligada',
+  clipboard_off: 'Captura desligada',
+  clipboard_permission: 'Permissão de área de transferência negada. Ativa-a nas definições do navegador.',
 }
 
 const en: Dict = {
@@ -148,6 +152,10 @@ const en: Dict = {
   install_hint: 'Add to home screen',
   installed: 'App installed',
   install_ios_hint: 'On iOS: tap Share (□↑) → "Add to Home Screen".',
+  clipboard_capture: 'Clipboard capture',
+  clipboard_on: 'Capture on',
+  clipboard_off: 'Capture off',
+  clipboard_permission: 'Clipboard permission denied. Enable it in browser settings.',
 }
 
 export const dictionaries: Record<Lang, Dict> = { pt, en }
