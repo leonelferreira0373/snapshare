@@ -472,14 +472,14 @@ export function HomeScreen({
       {/* Mobile */}
       <div className="flex flex-col gap-3 lg:hidden">
         {codeHeader}
+        {pairInput}
         {peersList}
+        {recentChips}
+        {errorBox}
         {transfersPanel}
         {addFilesBtn}
         {dropZone}
         {pendingNote}
-        {recentChips}
-        {pairInput}
-        {errorBox}
       </div>
 
       {/* Desktop */}
