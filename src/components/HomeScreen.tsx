@@ -7,9 +7,10 @@ import { deviceName } from '../lib/deviceName'
 import type { LastPair } from '../lib/persist'
 import type { Transfer, PairedPeer, PeerStatus } from '../hooks/usePeer'
 import {
-  Loader2, Link2, AlertTriangle, Copy, Check, QrCode,
-  Upload, LogOut, FileUp, RefreshCcw, X, Users, Inbox,
+  Loader2, Link2, AlertTriangle, Copy, Check, QrCode, ChevronDown, ChevronUp,
+  Upload, LogOut, FileUp, RefreshCcw, X, Users, Inbox, Minimize2,
 } from 'lucide-react'
+import { BackToTop } from './BackToTop'
 
 interface Props {
   myId: string | null
@@ -32,10 +33,20 @@ export function HomeScreen({
   const [codeInput, setCodeInput] = useState('')
   const [copied, setCopied] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
-  const [qrOpen, setQrOpen] = useState(false)
+  const [qrExpanded, setQrExpanded] = useState(false)
+  const [showAllTransfers, setShowAllTransfers] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const TRANSFERS_PREVIEW_LIMIT = 6
+  const anythingExpanded = qrExpanded || showAllTransfers
+
+  function collapseAll() {
+    setQrExpanded(false)
+    setShowAllTransfers(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const openPeers = peers.filter((p) => p.status === 'open')
   const hasOpenPeer = openPeers.length > 0
@@ -132,13 +143,21 @@ export function HomeScreen({
           {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
         </button>
         <button
-          onClick={() => setQrOpen(true)}
-          className="flex items-center gap-1 rounded-md bg-neutral-800 px-3 py-1.5 text-xs text-neutral-300 active:bg-neutral-700"
-          aria-label="Show QR"
+          onClick={() => setQrExpanded((v) => !v)}
+          className="flex items-center gap-1 rounded-md bg-neutral-800 px-2.5 py-1.5 text-xs text-neutral-300 active:bg-neutral-700"
+          aria-label="Toggle QR"
         >
-          <QrCode className="h-4 w-4" /> QR
+          <QrCode className="h-3.5 w-3.5" />
+          {qrExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
       </div>
+
+      {qrExpanded && (
+        <div className="flex flex-col items-center gap-2 border-t border-neutral-800 pt-3">
+          <QRDisplay value={url} size={220} />
+          <p className="text-xs text-neutral-500">Scan from any other device</p>
+        </div>
+      )}
     </header>
   )
 
@@ -320,13 +339,27 @@ export function HomeScreen({
     </p>
   )
 
+  const orderedTransfers = transfers.slice().reverse()
+  const hiddenCount = Math.max(0, orderedTransfers.length - TRANSFERS_PREVIEW_LIMIT)
+  const visibleTransfers = showAllTransfers ? orderedTransfers : orderedTransfers.slice(0, TRANSFERS_PREVIEW_LIMIT)
+
   const transfersPanel = (
     <section className="flex min-h-[280px] flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/30 p-3 lg:min-h-[calc(100vh-14rem)]">
-      <div className="flex items-center gap-2">
-        <Inbox className="h-4 w-4 text-neutral-400" />
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-300">
-          Transfers {transfers.length > 0 && <span className="text-neutral-500">({transfers.length})</span>}
-        </p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Inbox className="h-4 w-4 text-neutral-400" />
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-300">
+            Transfers {transfers.length > 0 && <span className="text-neutral-500">({transfers.length})</span>}
+          </p>
+        </div>
+        {anythingExpanded && (
+          <button
+            onClick={collapseAll}
+            className="flex items-center gap-1 rounded-md border border-neutral-800 px-2 py-1 text-[10px] uppercase tracking-wider text-neutral-400 hover:text-neutral-200 active:bg-neutral-900"
+          >
+            <Minimize2 className="h-3 w-3" /> Collapse all
+          </button>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-2">
         {transfers.length === 0 ? (
@@ -335,17 +368,35 @@ export function HomeScreen({
             <p className="text-[11px] text-neutral-700">Files sent or received will appear here</p>
           </div>
         ) : (
-          transfers.slice().reverse().map((t) => {
-            const peer = peers.find((p) => p.peerId === t.peerId)
-            const lastPair = lastPairs.find((p) => p.peerId === t.peerId)
-            return (
-              <TransferRow
-                key={t.id}
-                transfer={t}
-                remotePlatform={peer?.platform ?? lastPair?.platform}
-              />
-            )
-          })
+          <>
+            {visibleTransfers.map((t) => {
+              const peer = peers.find((p) => p.peerId === t.peerId)
+              const lastPair = lastPairs.find((p) => p.peerId === t.peerId)
+              return (
+                <TransferRow
+                  key={t.id}
+                  transfer={t}
+                  remotePlatform={peer?.platform ?? lastPair?.platform}
+                />
+              )
+            })}
+            {hiddenCount > 0 && (
+              <button
+                onClick={() => setShowAllTransfers((v) => !v)}
+                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-900/40 py-2.5 text-xs font-medium text-neutral-300 hover:border-neutral-700 hover:text-white active:bg-neutral-900"
+              >
+                {showAllTransfers ? (
+                  <>
+                    <ChevronUp className="h-3.5 w-3.5" /> Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3.5 w-3.5" /> Show all ({orderedTransfers.length})
+                  </>
+                )}
+              </button>
+            )}
+          </>
         )}
       </div>
     </section>
@@ -386,35 +437,13 @@ export function HomeScreen({
         </main>
       </div>
 
-      {/* Full-screen QR overlay */}
-      {qrOpen && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/95 backdrop-blur"
-          onClick={() => setQrOpen(false)}
-        >
-          <button
-            onClick={(e) => { e.stopPropagation(); setQrOpen(false) }}
-            className="absolute right-4 top-4 rounded-full bg-neutral-800 p-2"
-            aria-label="Close QR"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div onClick={(e) => e.stopPropagation()}>
-            <QRDisplay value={url} size={Math.min(360, Math.floor(window.innerWidth * 0.8))} />
-          </div>
-          <div className="flex flex-col items-center gap-1 text-center">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Your code</p>
-            <p className="font-mono text-3xl font-bold tracking-[0.25em] text-white">{formatCode(shortCode)}</p>
-            <p className="mt-2 text-xs text-neutral-500">Scan from any other device</p>
-          </div>
-        </div>
-      )}
-
       <QRScanner
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onDecode={handleScannerDecode}
       />
+
+      <BackToTop />
     </div>
   )
 }
