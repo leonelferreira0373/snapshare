@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Peer, { DataConnection } from 'peerjs'
 import { generateShortId } from '../lib/codeFromId'
+import { loadPeerId, savePeerId, loadLastPair, saveLastPair, clearLastPair, LastPair } from '../lib/persist'
 
 export type PeerStatus = 'connecting' | 'ready' | 'paired' | 'reconnecting' | 'error'
 
@@ -30,9 +31,11 @@ export interface UsePeerResult {
   remoteMeta: PeerMeta | null
   isConnected: boolean
   transfers: Transfer[]
+  lastPair: LastPair | null
   sendFiles: (files: FileList | File[]) => Promise<void>
   connect: (remoteId: string) => void
   disconnect: () => void
+  forgetLastPair: () => void
   error: string | null
 }
 
@@ -71,6 +74,7 @@ export function usePeer(): UsePeerResult {
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [error, setError] = useState<string | null>(null)
   const [connOpen, setConnOpen] = useState(false)
+  const [lastPair, setLastPair] = useState<LastPair | null>(() => loadLastPair())
 
   const upsert = useCallback((id: string, patch: Partial<Transfer>) => {
     setTransfers((prev) => {
@@ -89,6 +93,12 @@ export function usePeer(): UsePeerResult {
       try { msg = JSON.parse(data) as CtrlMsg } catch { return }
       if (msg.type === 'hello') {
         setRemoteMeta({ platform: msg.platform })
+        const remote = lastRemoteIdRef.current
+        if (remote) {
+          const pair: LastPair = { peerId: remote, platform: msg.platform, at: Date.now() }
+          setLastPair(pair)
+          saveLastPair(pair)
+        }
         return
       }
       if (msg.type === 'meta') {
@@ -153,6 +163,9 @@ export function usePeer(): UsePeerResult {
       setStatus('paired')
       setConnOpen(true)
       setError(null)
+      const newPair: LastPair = { peerId: conn.peer, at: Date.now() }
+      setLastPair(newPair)
+      saveLastPair(newPair)
       try {
         conn.send(JSON.stringify({ type: 'hello', platform: detectPlatform() } satisfies HelloMsg))
       } catch (e) {
@@ -180,15 +193,17 @@ export function usePeer(): UsePeerResult {
     let cancelled = false
     let retries = 0
 
-    function spinUp() {
+    function spinUp(forceFresh = false) {
       if (cancelled) return
-      const candidateId = `snap-${generateShortId()}`
+      const persisted = !forceFresh ? loadPeerId() : null
+      const candidateId = persisted || `snap-${generateShortId()}`
       const peer = new Peer(candidateId, { debug: 1 })
       peerRef.current = peer
 
       peer.on('open', (id) => {
         if (cancelled) return
         setMyId(id)
+        savePeerId(id)
         setStatus((s) => (s === 'paired' || s === 'reconnecting' ? s : 'ready'))
       })
 
@@ -210,7 +225,8 @@ export function usePeer(): UsePeerResult {
         if (err.type === 'unavailable-id' && retries < MAX_ID_RETRIES) {
           retries++
           peer.destroy()
-          spinUp()
+          // On collision, force-fresh ID (persisted one may be taken by another tab)
+          spinUp(true)
           return
         }
         if (err.type === 'peer-unavailable') {
@@ -313,11 +329,21 @@ export function usePeer(): UsePeerResult {
   }
 
   function disconnect() {
-    lastRemoteIdRef.current = null
+    // Close the active connection but keep lastPair / transfers so user can rejoin
+    // the same person and the transfer history remains visible.
     connectionRef.current?.close()
+    connectionRef.current = null
+    pendingConnRef.current = null
     setRemoteId(null)
     setRemoteMeta(null)
+    setConnOpen(false)
     setStatus('ready')
+  }
+
+  function forgetLastPair() {
+    lastRemoteIdRef.current = null
+    setLastPair(null)
+    clearLastPair()
   }
 
   return {
@@ -327,9 +353,11 @@ export function usePeer(): UsePeerResult {
     remoteMeta,
     isConnected: connOpen,
     transfers,
+    lastPair,
     sendFiles,
     connect,
     disconnect,
+    forgetLastPair,
     error,
   }
 }

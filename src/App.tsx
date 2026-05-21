@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { usePeer } from './hooks/usePeer'
-import { PairingScreen } from './components/PairingScreen'
-import { SessionScreen } from './components/SessionScreen'
+import { HomeScreen } from './components/HomeScreen'
 
 export default function App() {
   const peer = usePeer()
@@ -19,30 +18,20 @@ export default function App() {
     }
   }, [peer.status, peer])
 
-  if ((peer.status === 'paired' || peer.status === 'reconnecting') && peer.remoteId) {
-    return (
-      <SessionScreen
-        isConnected={peer.isConnected}
-        isReconnecting={peer.status === 'reconnecting'}
-        remoteId={peer.remoteId}
-        remotePlatform={peer.remoteMeta?.platform}
-        transfers={peer.transfers}
-        sendFiles={peer.sendFiles}
-        onDisconnect={peer.disconnect}
-      />
-    )
-  }
-
-  const screenStatus =
-    peer.status === 'connecting' ? 'connecting' :
-    peer.status === 'error' ? 'error' : 'ready'
-
   return (
-    <PairingScreen
+    <HomeScreen
       myId={peer.myId}
-      status={screenStatus}
+      status={peer.status}
+      remoteId={peer.remoteId}
+      remoteMeta={peer.remoteMeta}
+      isConnected={peer.isConnected}
+      transfers={peer.transfers}
+      lastPair={peer.lastPair}
       error={peer.error}
       onConnect={peer.connect}
+      onDisconnect={peer.disconnect}
+      onForgetLastPair={peer.forgetLastPair}
+      onSendFiles={peer.sendFiles}
     />
   )
 }
