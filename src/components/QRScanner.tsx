@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import QrScanner from 'qr-scanner'
 import { X, Camera, Monitor, AlertTriangle } from 'lucide-react'
+import { useT } from '../lib/i18n'
 
 interface Props {
   open: boolean
@@ -11,6 +12,7 @@ interface Props {
 type Source = 'camera' | 'screen'
 
 export function QRScanner({ open, onClose, onDecode }: Props) {
+  const { t } = useT()
   const videoRef = useRef<HTMLVideoElement>(null)
   const scannerRef = useRef<QrScanner | null>(null)
   const screenStreamRef = useRef<MediaStream | null>(null)
@@ -18,7 +20,6 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
 
-  // Auto-pick source by platform on first open
   useEffect(() => {
     if (!open) return
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
@@ -26,10 +27,7 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
   }, [open])
 
   useEffect(() => {
-    if (!open) {
-      stop()
-      return
-    }
+    if (!open) { stop(); return }
     start(source)
     return stop
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,17 +44,12 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
       if (src === 'camera') {
         const scanner = new QrScanner(
           video,
-          (result) => {
-            onDecode(result.data)
-            stop()
-            onClose()
-          },
+          (result) => { onDecode(result.data); stop(); onClose() },
           { preferredCamera: 'environment', highlightScanRegion: true, returnDetailedScanResult: true }
         )
         scannerRef.current = scanner
         await scanner.start()
       } else {
-        // Screen capture path
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: { frameRate: 10 },
           audio: false,
@@ -64,7 +57,6 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
         screenStreamRef.current = stream
         video.srcObject = stream
         await video.play()
-        // Run jsQR-via-qr-scanner on a canvas loop
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d', { willReadFrequently: true })!
         let stopped = false
@@ -79,18 +71,11 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
           try {
             const result = await QrScanner.scanImage(canvas, { returnDetailedScanResult: true })
             if (result?.data) {
-              onDecode(result.data)
-              stopped = true
-              stop()
-              onClose()
-              return
+              onDecode(result.data); stopped = true; stop(); onClose(); return
             }
-          } catch {
-            /* not found on this frame — keep scanning */
-          }
+          } catch { /* not found this frame */ }
           if (!stopped) requestAnimationFrame(tick)
         }
-        // store stopper
         ;(screenStreamRef as unknown as { stopTick?: () => void }).stopTick = () => { stopped = true }
         requestAnimationFrame(tick)
       }
@@ -108,10 +93,10 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
     scannerRef.current = null
     const stopper = (screenStreamRef as unknown as { stopTick?: () => void }).stopTick
     if (stopper) { stopper(); delete (screenStreamRef as unknown as { stopTick?: () => void }).stopTick }
-    screenStreamRef.current?.getTracks().forEach((t) => t.stop())
+    screenStreamRef.current?.getTracks().forEach((tr) => tr.stop())
     screenStreamRef.current = null
     const v = videoRef.current
-    if (v) { v.srcObject = null }
+    if (v) v.srcObject = null
   }
 
   if (!open) return null
@@ -119,11 +104,11 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur">
       <header className="flex items-center justify-between px-4 py-3">
-        <p className="text-sm font-medium">Scan QR Code</p>
+        <p className="text-sm font-medium text-white">{t('scan_qr_code')}</p>
         <button
           onClick={() => { stop(); onClose() }}
-          className="rounded-full bg-neutral-800 p-2"
-          aria-label="Close"
+          className="rounded-full bg-neutral-800 p-2 text-white"
+          aria-label={t('close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -136,7 +121,7 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
             source === 'camera' ? 'bg-white text-black' : 'bg-neutral-800 text-neutral-300'
           }`}
         >
-          <Camera className="h-3.5 w-3.5" /> Camera
+          <Camera className="h-3.5 w-3.5" /> {t('camera')}
         </button>
         <button
           onClick={() => setSource('screen')}
@@ -144,24 +129,17 @@ export function QRScanner({ open, onClose, onDecode }: Props) {
             source === 'screen' ? 'bg-white text-black' : 'bg-neutral-800 text-neutral-300'
           }`}
         >
-          <Monitor className="h-3.5 w-3.5" /> Screen
+          <Monitor className="h-3.5 w-3.5" /> {t('screen')}
         </button>
       </div>
 
       <div className="relative mx-4 flex flex-1 items-center justify-center overflow-hidden rounded-2xl bg-neutral-950">
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          className="h-full w-full object-contain"
-        />
-        {starting && (
-          <p className="absolute text-xs text-neutral-400">Starting {source}…</p>
-        )}
+        <video ref={videoRef} playsInline muted className="h-full w-full object-contain" />
+        {starting && <p className="absolute text-xs text-neutral-400">{t('starting')} {source === 'camera' ? t('camera').toLowerCase() : t('screen').toLowerCase()}…</p>}
       </div>
 
       <div className="px-4 py-4 text-center text-xs text-neutral-500">
-        {source === 'camera' ? 'Point at the QR shown on the other device' : 'Share the screen showing the QR code'}
+        {source === 'camera' ? t('camera_hint') : t('screen_hint')}
       </div>
 
       {error && (

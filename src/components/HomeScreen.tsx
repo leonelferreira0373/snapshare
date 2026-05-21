@@ -4,6 +4,7 @@ import { QRScanner } from './QRScanner'
 import { TransferRow } from './TransferRow'
 import { formatCode, normalizeCode } from '../lib/codeFromId'
 import { deviceName } from '../lib/deviceName'
+import { useT } from '../lib/i18n'
 import type { LastPair } from '../lib/persist'
 import type { Transfer, PairedPeer, PeerStatus } from '../hooks/usePeer'
 import {
@@ -26,10 +27,23 @@ interface Props {
   onSendFiles: (files: File[] | FileList) => Promise<void>
 }
 
+// Tailwind class shortcuts for dual-mode surfaces
+const SURFACE = 'bg-white border-slate-200 dark:bg-neutral-900/50 dark:border-neutral-800'
+const SURFACE_SOFT = 'bg-slate-50 border-slate-200 dark:bg-neutral-900/40 dark:border-neutral-800'
+const SURFACE_INNER = 'bg-slate-100 dark:bg-neutral-900/60'
+const TEXT_BASE = 'text-slate-900 dark:text-white'
+const TEXT_MUTED = 'text-slate-500 dark:text-neutral-400'
+const TEXT_SOFT = 'text-slate-400 dark:text-neutral-500'
+const TEXT_FAINT = 'text-slate-300 dark:text-neutral-600'
+const PILL_BTN = 'bg-slate-200 text-slate-700 active:bg-slate-300 dark:bg-neutral-800 dark:text-neutral-300 dark:active:bg-neutral-700'
+const INPUT_CLS = 'border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-slate-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-white dark:placeholder-neutral-700 dark:focus:border-neutral-500'
+
 export function HomeScreen({
   myId, status, peers, transfers, lastPairs, error,
   onConnect, onDisconnectPeer, onDisconnectAll, onForgetPair, onSendFiles,
 }: Props) {
+  const { t } = useT()
+
   const [codeInput, setCodeInput] = useState('')
   const [copied, setCopied] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -62,9 +76,9 @@ export function HomeScreen({
   if (status === 'connecting' || !myId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-neutral-400">
+        <div className={`flex flex-col items-center gap-3 ${TEXT_MUTED}`}>
           <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-sm">Connecting…</p>
+          <p className="text-sm">{t('connecting')}</p>
         </div>
       </div>
     )
@@ -73,8 +87,14 @@ export function HomeScreen({
   const shortCode = myId.replace(/^snap-/, '')
   const url = `${window.location.origin}${window.location.pathname}?peer=${encodeURIComponent(myId)}`
   const connectedIds = new Set(peers.map((p) => p.peerId))
-  const reconnectableLastPairs = lastPairs
-    .filter((p) => p.peerId !== myId && !connectedIds.has(p.peerId))
+  const reconnectableLastPairs = lastPairs.filter((p) => p.peerId !== myId && !connectedIds.has(p.peerId))
+
+  // Translate any code-based errors
+  function translateError(raw: string): string {
+    if (raw.startsWith('Code not found')) return t('err_code_not_found')
+    if (raw.startsWith("Can't pair")) return t('err_self_pair')
+    return raw
+  }
 
   async function copyCode() {
     try {
@@ -124,28 +144,28 @@ export function HomeScreen({
     handleFiles(e.dataTransfer.files)
   }
 
-  // --- subcomponents (inline so they share state cleanly) ---
+  // ---------- subcomponents ----------
 
   const codeHeader = (
-    <header className="flex flex-col gap-3 rounded-2xl border border-neutral-800 bg-neutral-900/50 p-3">
+    <header className={`flex flex-col gap-3 rounded-2xl border p-3 ${SURFACE}`}>
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Your code</p>
-          <p className="font-mono text-2xl font-bold tracking-[0.2em] text-white">
+          <p className={`text-[10px] uppercase tracking-[0.2em] ${TEXT_MUTED}`}>{t('your_code')}</p>
+          <p className={`font-mono text-2xl font-bold tracking-[0.2em] ${TEXT_BASE}`}>
             {formatCode(shortCode)}
           </p>
         </div>
         <button
           onClick={copyCode}
-          className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-800 text-neutral-300 active:bg-neutral-700"
-          aria-label="Copy code"
+          className={`flex h-9 w-9 items-center justify-center rounded-md ${PILL_BTN}`}
+          aria-label={t('copy_code')}
         >
-          {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+          {copied ? <Check className="h-4 w-4 text-emerald-500 dark:text-emerald-400" /> : <Copy className="h-4 w-4" />}
         </button>
         <button
           onClick={() => setQrExpanded((v) => !v)}
-          className="flex items-center gap-1 rounded-md bg-neutral-800 px-2.5 py-1.5 text-xs text-neutral-300 active:bg-neutral-700"
-          aria-label="Toggle QR"
+          className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs ${PILL_BTN}`}
+          aria-label={t('toggle_qr')}
         >
           <QrCode className="h-3.5 w-3.5" />
           {qrExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -153,52 +173,48 @@ export function HomeScreen({
       </div>
 
       {qrExpanded && (
-        <div className="flex flex-col items-center gap-2 border-t border-neutral-800 pt-3">
+        <div className="flex flex-col items-center gap-2 border-t border-slate-200 pt-3 dark:border-neutral-800">
           <QRDisplay value={url} size={220} />
-          <p className="text-xs text-neutral-500">Scan from any other device</p>
+          <p className={`text-xs ${TEXT_MUTED}`}>{t('scan_other')}</p>
         </div>
       )}
     </header>
   )
 
   const peersList = hasAnyPeer && (
-    <section className="flex flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/40 p-2">
+    <section className={`flex flex-col gap-2 rounded-2xl border p-2 ${SURFACE_SOFT}`}>
       <div className="flex items-center justify-between px-1 pt-1">
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+        <div className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] ${TEXT_MUTED}`}>
           <Users className="h-3 w-3" />
-          <span>Paired devices ({peers.length})</span>
+          <span>{t('paired_devices')} ({peers.length})</span>
         </div>
         {peers.length > 1 && (
           <button
             onClick={onDisconnectAll}
-            className="rounded-md px-2 py-1 text-[10px] uppercase tracking-wider text-neutral-400 active:bg-neutral-900"
+            className={`rounded-md px-2 py-1 text-[10px] uppercase tracking-wider ${TEXT_MUTED} active:bg-slate-200 dark:active:bg-neutral-900`}
           >
-            Disconnect all
+            {t('disconnect_all')}
           </button>
         )}
       </div>
       {peers.map((p) => {
         const reconnecting = p.status === 'reconnecting'
         const connecting = p.status === 'connecting'
-        const dot = p.status === 'open'
-          ? 'bg-emerald-400'
-          : reconnecting
-            ? 'bg-amber-400 animate-pulse'
-            : 'bg-neutral-500 animate-pulse'
+        const dot = p.status === 'open' ? 'bg-emerald-400'
+          : reconnecting ? 'bg-amber-400 animate-pulse'
+            : 'bg-neutral-400 animate-pulse'
         return (
-          <div key={p.peerId} className="flex items-center justify-between gap-2 rounded-lg bg-neutral-900/60 px-3 py-2">
+          <div key={p.peerId} className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${SURFACE_INNER}`}>
             <div className="flex min-w-0 items-center gap-2">
               <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
-              <p className="truncate text-sm font-medium">{deviceName(p.peerId, p.platform)}</p>
+              <p className={`truncate text-sm font-medium ${TEXT_BASE}`}>{deviceName(p.peerId, p.platform)}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {(reconnecting || connecting) && (
-                <Loader2 className="h-3 w-3 animate-spin text-neutral-500" />
-              )}
+              {(reconnecting || connecting) && <Loader2 className={`h-3 w-3 animate-spin ${TEXT_SOFT}`} />}
               <button
                 onClick={() => onDisconnectPeer(p.peerId)}
-                className="rounded-md p-1 text-neutral-400 active:bg-neutral-800"
-                aria-label="Disconnect"
+                className={`rounded-md p-1 ${TEXT_MUTED} active:bg-slate-200 dark:active:bg-neutral-800`}
+                aria-label={t('disconnect')}
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>
@@ -211,15 +227,15 @@ export function HomeScreen({
 
   const recentChips = reconnectableLastPairs.length > 0 && (
     <section className="flex flex-col gap-1.5">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Recent</p>
+      <p className={`text-[10px] uppercase tracking-[0.2em] ${TEXT_MUTED}`}>{t('recent')}</p>
       {reconnectableLastPairs.map((pair) => (
         <div
           key={pair.peerId}
-          className="flex items-center justify-between gap-2 rounded-xl border border-emerald-900/30 bg-emerald-950/20 px-3 py-2"
+          className="flex items-center justify-between gap-2 rounded-xl border border-emerald-300/40 bg-emerald-50 px-3 py-2 dark:border-emerald-900/30 dark:bg-emerald-950/20"
         >
           <div className="flex min-w-0 items-center gap-2">
-            <RefreshCcw className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-            <p className="truncate text-xs text-emerald-200">
+            <RefreshCcw className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <p className="truncate text-xs text-emerald-700 dark:text-emerald-200">
               <span className="font-medium">{deviceName(pair.peerId, pair.platform)}</span>
             </p>
           </div>
@@ -228,12 +244,12 @@ export function HomeScreen({
               onClick={() => onConnect(pair.peerId)}
               className="rounded-md bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-emerald-950 active:bg-emerald-400"
             >
-              Pair
+              {t('pair')}
             </button>
             <button
               onClick={() => onForgetPair(pair.peerId)}
-              className="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-800 text-neutral-400 active:bg-neutral-700"
-              aria-label="Forget"
+              className={`flex h-6 w-6 items-center justify-center rounded-md ${PILL_BTN}`}
+              aria-label={t('forget')}
             >
               <X className="h-3 w-3" />
             </button>
@@ -244,12 +260,9 @@ export function HomeScreen({
   )
 
   const pairInput = (
-    <form
-      onSubmit={(e) => { e.preventDefault(); submit(codeInput) }}
-      className="flex flex-col gap-2"
-    >
-      <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-        {hasAnyPeer ? 'Add another device' : 'Enter code from other device'}
+    <form onSubmit={(e) => { e.preventDefault(); submit(codeInput) }} className="flex flex-col gap-2">
+      <label className={`text-[10px] uppercase tracking-[0.2em] ${TEXT_MUTED}`}>
+        {hasAnyPeer ? t('add_another_device') : t('enter_code_from_other')}
       </label>
       <div className="flex gap-2">
         <input
@@ -261,30 +274,30 @@ export function HomeScreen({
           autoCorrect="off"
           autoComplete="off"
           spellCheck={false}
-          className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2.5 text-center font-mono text-lg tracking-[0.2em] uppercase placeholder-neutral-700 outline-none focus:border-neutral-500"
+          className={`flex-1 rounded-lg border px-3 py-2.5 text-center font-mono text-lg tracking-[0.2em] uppercase outline-none ${INPUT_CLS}`}
         />
         <button
           type="submit"
           disabled={normalizeCode(codeInput).length !== 6}
-          className="flex items-center gap-1 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black active:bg-neutral-200 disabled:bg-neutral-800 disabled:text-neutral-500"
+          className="flex items-center gap-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white active:bg-slate-700 disabled:bg-slate-200 disabled:text-slate-400 dark:bg-white dark:text-black dark:active:bg-neutral-200 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-500"
         >
-          <Link2 className="h-4 w-4" /> Pair
+          <Link2 className="h-4 w-4" /> {t('pair')}
         </button>
       </div>
       <button
         type="button"
         onClick={() => setScannerOpen(true)}
-        className="flex items-center justify-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 py-2.5 text-xs font-medium text-neutral-200 active:bg-neutral-900"
+        className={`flex items-center justify-center gap-2 rounded-lg border py-2.5 text-xs font-medium ${SURFACE_SOFT} ${TEXT_BASE} active:bg-slate-100 dark:active:bg-neutral-900`}
       >
-        <QrCode className="h-4 w-4" /> Scan QR (camera or screen)
+        <QrCode className="h-4 w-4" /> {t('scan_qr_camera_screen')}
       </button>
     </form>
   )
 
   const errorBox = error && (
-    <div className="flex items-start gap-2 rounded-lg border border-red-900/40 bg-red-950/30 p-3 text-xs text-red-200">
+    <div className="flex items-start gap-2 rounded-lg border border-red-300/50 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-      <span>{error}</span>
+      <span>{translateError(error)}</span>
     </div>
   )
 
@@ -296,22 +309,22 @@ export function HomeScreen({
       onClick={hasOpenPeer ? handlePick : undefined}
       className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed py-8 text-center transition-colors ${
         dragOver
-          ? 'border-white bg-neutral-900 cursor-pointer'
+          ? 'border-slate-900 bg-slate-100 cursor-pointer dark:border-white dark:bg-neutral-900'
           : hasOpenPeer
-            ? 'border-neutral-800 hover:border-neutral-700 cursor-pointer'
-            : 'border-neutral-900 opacity-50 cursor-not-allowed'
+            ? 'border-slate-300 hover:border-slate-400 cursor-pointer dark:border-neutral-800 dark:hover:border-neutral-700'
+            : 'border-slate-200 opacity-60 cursor-not-allowed dark:border-neutral-900'
       }`}
     >
-      <div className="rounded-full bg-neutral-900 p-2.5">
-        <Upload className="h-5 w-5 text-neutral-300" />
+      <div className={`rounded-full p-2.5 ${SURFACE_INNER}`}>
+        <Upload className={`h-5 w-5 ${TEXT_MUTED}`} />
       </div>
-      <p className="text-sm font-medium">
+      <p className={`text-sm font-medium ${TEXT_BASE}`}>
         {hasOpenPeer
-          ? openPeers.length === 1 ? 'Tap or drop files' : `Send to ${openPeers.length} devices`
-          : 'Pair to send'}
+          ? openPeers.length === 1 ? t('tap_or_drop') : t('send_to_n_devices', { n: openPeers.length })
+          : t('pair_to_send')}
       </p>
-      <p className="text-xs text-neutral-500">
-        {hasOpenPeer ? 'Anything — photos, videos, docs' : 'Connect a device first'}
+      <p className={`text-xs ${TEXT_MUTED}`}>
+        {hasOpenPeer ? t('drop_hint') : t('connect_first')}
       </p>
       <input
         ref={fileInputRef}
@@ -326,16 +339,16 @@ export function HomeScreen({
   const addFilesBtn = hasOpenPeer && (
     <button
       onClick={handlePick}
-      className="flex items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-semibold text-black active:bg-neutral-200"
+      className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white active:bg-slate-700 dark:bg-white dark:text-black dark:active:bg-neutral-200"
     >
       <FileUp className="h-4 w-4" />
-      {openPeers.length === 1 ? 'Add files' : `Send to ${openPeers.length} devices`}
+      {openPeers.length === 1 ? t('add_files') : t('send_to_n_devices', { n: openPeers.length })}
     </button>
   )
 
   const pendingNote = pendingFiles.length > 0 && (
-    <p className="rounded-lg border border-amber-900/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-200">
-      {pendingFiles.length} file{pendingFiles.length === 1 ? '' : 's'} waiting for a device…
+    <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+      {pendingFiles.length} {pendingFiles.length === 1 ? t('files_waiting') : t('files_waiting_plural')}
     </p>
   )
 
@@ -344,38 +357,38 @@ export function HomeScreen({
   const visibleTransfers = showAllTransfers ? orderedTransfers : orderedTransfers.slice(0, TRANSFERS_PREVIEW_LIMIT)
 
   const transfersPanel = (
-    <section className="flex min-h-[280px] flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/30 p-3 lg:min-h-[calc(100vh-14rem)]">
+    <section className={`flex min-h-[280px] flex-col gap-2 rounded-2xl border p-3 ${SURFACE_SOFT} lg:min-h-[calc(100vh-14rem)]`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Inbox className="h-4 w-4 text-neutral-400" />
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-300">
-            Transfers {transfers.length > 0 && <span className="text-neutral-500">({transfers.length})</span>}
+          <Inbox className={`h-4 w-4 ${TEXT_MUTED}`} />
+          <p className={`text-xs font-semibold uppercase tracking-[0.15em] ${TEXT_BASE}`}>
+            {t('transfers')} {transfers.length > 0 && <span className={TEXT_MUTED}>({transfers.length})</span>}
           </p>
         </div>
         {anythingExpanded && (
           <button
             onClick={collapseAll}
-            className="flex items-center gap-1 rounded-md border border-neutral-800 px-2 py-1 text-[10px] uppercase tracking-wider text-neutral-400 hover:text-neutral-200 active:bg-neutral-900"
+            className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] uppercase tracking-wider ${SURFACE_SOFT} ${TEXT_MUTED} hover:text-slate-800 dark:hover:text-neutral-200`}
           >
-            <Minimize2 className="h-3 w-3" /> Collapse all
+            <Minimize2 className="h-3 w-3" /> {t('collapse_all')}
           </button>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2">
         {transfers.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-1 py-8 text-center">
-            <p className="text-xs text-neutral-600">No transfers yet</p>
-            <p className="text-[11px] text-neutral-700">Files sent or received will appear here</p>
+            <p className={`text-xs ${TEXT_SOFT}`}>{t('no_transfers')}</p>
+            <p className={`text-[11px] ${TEXT_FAINT}`}>{t('transfers_hint')}</p>
           </div>
         ) : (
           <>
-            {visibleTransfers.map((t) => {
-              const peer = peers.find((p) => p.peerId === t.peerId)
-              const lastPair = lastPairs.find((p) => p.peerId === t.peerId)
+            {visibleTransfers.map((tr) => {
+              const peer = peers.find((p) => p.peerId === tr.peerId)
+              const lastPair = lastPairs.find((p) => p.peerId === tr.peerId)
               return (
                 <TransferRow
-                  key={t.id}
-                  transfer={t}
+                  key={tr.id}
+                  transfer={tr}
                   remotePlatform={peer?.platform ?? lastPair?.platform}
                 />
               )
@@ -383,16 +396,12 @@ export function HomeScreen({
             {hiddenCount > 0 && (
               <button
                 onClick={() => setShowAllTransfers((v) => !v)}
-                className="mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-900/40 py-2.5 text-xs font-medium text-neutral-300 hover:border-neutral-700 hover:text-white active:bg-neutral-900"
+                className={`mt-1 flex items-center justify-center gap-1.5 rounded-lg border py-2.5 text-xs font-medium ${SURFACE_SOFT} ${TEXT_BASE} hover:opacity-90`}
               >
                 {showAllTransfers ? (
-                  <>
-                    <ChevronUp className="h-3.5 w-3.5" /> Show less
-                  </>
+                  <><ChevronUp className="h-3.5 w-3.5" /> {t('show_less')}</>
                 ) : (
-                  <>
-                    <ChevronDown className="h-3.5 w-3.5" /> Show all ({orderedTransfers.length})
-                  </>
+                  <><ChevronDown className="h-3.5 w-3.5" /> {t('show_all')} ({orderedTransfers.length})</>
                 )}
               </button>
             )}
@@ -403,8 +412,8 @@ export function HomeScreen({
   )
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-4 lg:px-6 lg:py-6">
-      {/* MOBILE / NARROW layout (stacked, page scrolls) */}
+    <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-4 pt-16 lg:px-6 lg:pb-6 lg:pt-20">
+      {/* Mobile */}
       <div className="flex flex-col gap-3 lg:hidden">
         {codeHeader}
         {peersList}
@@ -417,18 +426,15 @@ export function HomeScreen({
         {errorBox}
       </div>
 
-      {/* DESKTOP / WIDE layout (2 columns, transfers as main pane) */}
+      {/* Desktop */}
       <div className="hidden grid-cols-[minmax(320px,400px)_minmax(0,1fr)] gap-6 lg:grid">
-        {/* LEFT — controls (sticky so the code stays visible while scrolling) */}
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
+        <aside className="flex flex-col gap-3 lg:sticky lg:top-20 lg:self-start">
           {codeHeader}
           {peersList}
           {recentChips}
           {pairInput}
           {errorBox}
         </aside>
-
-        {/* RIGHT — transfers main pane + drop zone */}
         <main className="flex flex-col gap-3">
           {dropZone}
           {addFilesBtn}

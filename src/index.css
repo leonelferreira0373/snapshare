@@ -3,7 +3,27 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+  --color-bg: 248 250 252;
+  --color-surface: 255 255 255;
+  --color-surface-2: 241 245 249;
+  --color-border: 226 232 240;
+  --color-text: 15 23 42;
+  --color-text-muted: 100 116 139;
+  --color-text-soft: 148 163 184;
+  --color-accent: 16 185 129;
+}
+
+.dark {
   color-scheme: dark;
+  --color-bg: 10 10 10;
+  --color-surface: 23 23 23;
+  --color-surface-2: 38 38 38;
+  --color-border: 38 38 38;
+  --color-text: 250 250 250;
+  --color-text-muted: 163 163 163;
+  --color-text-soft: 115 115 115;
+  --color-accent: 16 185 129;
 }
 
 html, body, #root {
@@ -19,7 +39,8 @@ html, body, #root {
 }
 
 body {
-  background: #0a0a0a;
-  color: #fafafa;
+  background: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
   overscroll-behavior-y: none;
+  transition: background-color 200ms ease, color 200ms ease;
 }
