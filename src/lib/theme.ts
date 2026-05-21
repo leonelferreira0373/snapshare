@@ -34,4 +34,11 @@ export function applyTheme(theme: Theme): void {
   if (theme === 'dark') root.classList.add('dark')
   else root.classList.remove('dark')
   root.style.colorScheme = theme
+  // Update mobile browser chrome to match the chosen mode (not OS pref)
+  const metas = document.querySelectorAll('meta[name="theme-color"]')
+  metas.forEach((m) => m.parentNode?.removeChild(m))
+  const meta = document.createElement('meta')
+  meta.name = 'theme-color'
+  meta.content = theme === 'dark' ? '#0a0a0a' : '#f3f1ec'
+  document.head.appendChild(meta)
 }
