@@ -41,6 +41,7 @@ export interface UsePeerResult {
   transfers: Transfer[]
   lastPairs: LastPair[]
   sendFiles: (files: FileList | File[]) => Promise<void>
+  resendTransfer: (transfer: Transfer) => Promise<void>
   connect: (remoteId: string) => void
   disconnectPeer: (peerId: string) => void
   disconnectAll: () => void
@@ -84,6 +85,8 @@ export function usePeer(): UsePeerResult {
   const inboundRef = useRef<Map<string, InboundEntry>>(new Map())
   // Per-peer "current incoming transferId" (most recent meta seen from that peer)
   const currentInboundIdRef = useRef<Map<string, string>>(new Map())
+  // transferId → File for outbound transfers, so we can resend without re-pick
+  const sourceFilesRef = useRef<Map<string, File>>(new Map())
 
   const [myId, setMyId] = useState<string | null>(null)
   const [status, setStatus] = useState<PeerStatus>('connecting')
@@ -381,6 +384,7 @@ export function usePeer(): UsePeerResult {
       for (const conn of liveConns) {
         const transferId = crypto.randomUUID()
         jobs.push({ file, conn, transferId })
+        sourceFilesRef.current.set(transferId, file)
         queuedRows.push({
           id: transferId, peerId: conn.peer, direction: 'out',
           name: file.name, size: file.size,
@@ -412,6 +416,26 @@ export function usePeer(): UsePeerResult {
       }),
     )
   }, [sendFileToConn, upsertTransfer])
+
+  const resendTransfer = useCallback(async (transfer: Transfer) => {
+    let file: File | null = null
+    if (transfer.direction === 'out') {
+      file = sourceFilesRef.current.get(transfer.id) ?? null
+    } else if (transfer.direction === 'in' && transfer.downloadUrl) {
+      try {
+        const res = await fetch(transfer.downloadUrl)
+        const blob = await res.blob()
+        file = new File([blob], transfer.name, {
+          type: transfer.mime || blob.type || 'application/octet-stream',
+          lastModified: Date.now(),
+        })
+      } catch (e) {
+        console.error('resend: failed to read blob', e)
+      }
+    }
+    if (!file) return
+    await sendFiles([file])
+  }, [sendFiles])
 
   function connect(target: string) {
     const peer = peerRef.current
@@ -459,6 +483,7 @@ export function usePeer(): UsePeerResult {
     transfers,
     lastPairs,
     sendFiles,
+    resendTransfer,
     connect,
     disconnectPeer,
     disconnectAll,

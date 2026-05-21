@@ -88,6 +88,7 @@ const pt: Dict = {
   tap_to_copy: 'Tocar para copiar',
   copied: 'Copiado',
   copy_text: 'Copiar texto',
+  resend: 'Reenviar',
 }
 
 const en: Dict = {
@@ -162,6 +163,7 @@ const en: Dict = {
   tap_to_copy: 'Tap to copy',
   copied: 'Copied',
   copy_text: 'Copy text',
+  resend: 'Resend',
 }
 
 export const dictionaries: Record<Lang, Dict> = { pt, en }

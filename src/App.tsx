@@ -74,6 +74,7 @@ function AppBody() {
       onDisconnectAll={peer.disconnectAll}
       onForgetPair={peer.forgetPair}
       onSendFiles={peer.sendFiles}
+      onResend={peer.resendTransfer}
     />
   )
 }

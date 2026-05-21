@@ -28,6 +28,7 @@ interface Props {
   onDisconnectAll: () => void
   onForgetPair: (peerId: string) => void
   onSendFiles: (files: File[] | FileList) => Promise<void>
+  onResend: (transfer: Transfer) => Promise<void>
 }
 
 // Tailwind class shortcuts for dual-mode surfaces.
@@ -44,7 +45,7 @@ const INPUT_CLS = 'border-zinc-200 bg-white text-zinc-900 placeholder-zinc-300 f
 
 export function HomeScreen({
   myId, status, peers, transfers, lastPairs, error,
-  onConnect, onDisconnectPeer, onDisconnectAll, onForgetPair, onSendFiles,
+  onConnect, onDisconnectPeer, onDisconnectAll, onForgetPair, onSendFiles, onResend,
 }: Props) {
   const { t } = useT()
 
@@ -441,11 +442,16 @@ export function HomeScreen({
             {visibleTransfers.map((tr) => {
               const peer = peers.find((p) => p.peerId === tr.peerId)
               const lastPair = lastPairs.find((p) => p.peerId === tr.peerId)
+              const canResend = tr.status === 'done' && (
+                tr.direction === 'out' || (tr.direction === 'in' && !!tr.downloadUrl)
+              )
               return (
                 <TransferRow
                   key={tr.id}
                   transfer={tr}
                   remotePlatform={peer?.platform ?? lastPair?.platform}
+                  onResend={onResend}
+                  canResend={canResend && hasOpenPeer}
                 />
               )
             })}

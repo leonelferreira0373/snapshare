@@ -3,11 +3,13 @@ import { Transfer } from '../hooks/usePeer'
 import { deviceName } from '../lib/deviceName'
 import { iconForFile } from '../lib/fileIcon'
 import { useT } from '../lib/i18n'
-import { ArrowDown, ArrowUp, Check, Download, X, Copy } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Download, X, Copy, Send } from 'lucide-react'
 
 interface Props {
   transfer: Transfer
   remotePlatform?: string
+  onResend?: (transfer: Transfer) => void
+  canResend: boolean
 }
 
 function formatBytes(n: number): string {
@@ -17,9 +19,10 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
-export function TransferRow({ transfer, remotePlatform }: Props) {
+export function TransferRow({ transfer, remotePlatform, onResend, canResend }: Props) {
   const { t } = useT()
   const [copied, setCopied] = useState(false)
+  const [resending, setResending] = useState(false)
   const pct = transfer.size > 0 ? Math.min(100, Math.round((transfer.bytes / transfer.size) * 100)) : 0
   const FileIcon = iconForFile(transfer.name, transfer.mime)
   const DirIcon = transfer.direction === 'in' ? ArrowDown : ArrowUp
@@ -34,6 +37,7 @@ export function TransferRow({ transfer, remotePlatform }: Props) {
   const dirSolid = transfer.direction === 'in' ? 'bg-emerald-500' : 'bg-sky-500'
 
   const isTextCopyable = transfer.status === 'done' && typeof transfer.textContent === 'string'
+  const showResend = transfer.status === 'done' && canResend && onResend !== undefined
 
   async function copyText() {
     if (!transfer.textContent) return
@@ -42,6 +46,13 @@ export function TransferRow({ transfer, remotePlatform }: Props) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch { /* permission denied */ }
+  }
+
+  async function handleResend(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!onResend) return
+    setResending(true)
+    try { await Promise.resolve(onResend(transfer)) } finally { setResending(false) }
   }
 
   const baseClasses = 'flex flex-col gap-1.5 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm shadow-zinc-900/[0.03] dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none'
@@ -73,7 +84,6 @@ export function TransferRow({ transfer, remotePlatform }: Props) {
         {transfer.status === 'failed' && <X className="h-4 w-4 shrink-0 text-red-500 dark:text-red-400" />}
       </div>
 
-      {/* Inline text preview for text payloads */}
       {isTextCopyable && transfer.textContent && (
         <div className="rounded-md bg-zinc-50 px-2.5 py-1.5 dark:bg-neutral-900/80">
           <p className="line-clamp-2 break-words text-[11px] leading-snug text-zinc-600 dark:text-neutral-400">
@@ -91,8 +101,8 @@ export function TransferRow({ transfer, remotePlatform }: Props) {
         </div>
       )}
 
-      <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-500">
-        <span>
+      <div className="flex items-center justify-between gap-2 text-[11px] text-zinc-500 dark:text-neutral-500">
+        <span className="truncate">
           {transfer.status === 'done'
             ? (isTextCopyable
               ? (copied
@@ -101,16 +111,27 @@ export function TransferRow({ transfer, remotePlatform }: Props) {
               : t('complete'))
             : `${pct}%`}
         </span>
-        {transfer.direction === 'in' && transfer.status === 'done' && transfer.downloadUrl && (
-          <a
-            href={transfer.downloadUrl}
-            download={transfer.name}
-            onClick={(e) => e.stopPropagation()}
-            className="flex shrink-0 items-center gap-1 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
-          >
-            <Download className="h-3 w-3" /> {t('save_again')}
-          </a>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {transfer.direction === 'in' && transfer.status === 'done' && transfer.downloadUrl && (
+            <a
+              href={transfer.downloadUrl}
+              download={transfer.name}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
+            >
+              <Download className="h-3 w-3" /> {t('save_again')}
+            </a>
+          )}
+          {showResend && (
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="flex items-center gap-1 text-zinc-700 hover:text-zinc-900 disabled:opacity-50 dark:text-neutral-300 dark:hover:text-white"
+            >
+              <Send className="h-3 w-3" /> {t('resend')}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
