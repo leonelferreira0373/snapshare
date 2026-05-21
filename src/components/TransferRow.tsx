@@ -1,4 +1,4 @@
-import { Transfer } from '../hooks/useFileTransfer'
+import { Transfer } from '../hooks/usePeer'
 import { ArrowDown, ArrowUp, Check, Download, X } from 'lucide-react'
 
 interface Props {

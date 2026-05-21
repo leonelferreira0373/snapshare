@@ -22,10 +22,12 @@ export default function App() {
   if ((peer.status === 'paired' || peer.status === 'reconnecting') && peer.remoteId) {
     return (
       <SessionScreen
-        connection={peer.connection}
+        isConnected={peer.isConnected}
+        isReconnecting={peer.status === 'reconnecting'}
         remoteId={peer.remoteId}
         remotePlatform={peer.remoteMeta?.platform}
-        isReconnecting={peer.status === 'reconnecting'}
+        transfers={peer.transfers}
+        sendFiles={peer.sendFiles}
         onDisconnect={peer.disconnect}
       />
     )

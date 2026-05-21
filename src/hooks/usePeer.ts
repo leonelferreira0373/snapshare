@@ -4,6 +4,21 @@ import { generateShortId } from '../lib/codeFromId'
 
 export type PeerStatus = 'connecting' | 'ready' | 'paired' | 'reconnecting' | 'error'
 
+export type TransferDirection = 'in' | 'out'
+export type TransferStatus = 'transferring' | 'done' | 'failed'
+
+export interface Transfer {
+  id: string
+  direction: TransferDirection
+  name: string
+  size: number
+  mime: string
+  bytes: number
+  status: TransferStatus
+  error?: string
+  downloadUrl?: string
+}
+
 export interface PeerMeta {
   platform: string
 }
@@ -11,15 +26,25 @@ export interface PeerMeta {
 export interface UsePeerResult {
   myId: string | null
   status: PeerStatus
-  connection: DataConnection | null
   remoteId: string | null
   remoteMeta: PeerMeta | null
+  isConnected: boolean
+  transfers: Transfer[]
+  sendFiles: (files: FileList | File[]) => Promise<void>
   connect: (remoteId: string) => void
   disconnect: () => void
   error: string | null
 }
 
 const MAX_ID_RETRIES = 4
+const CHUNK_SIZE = 16 * 1024
+const HIGH_WATER = 16 * 1024 * 1024
+const LOW_WATER = 1 * 1024 * 1024
+
+interface MetaMsg { type: 'meta'; id: string; name: string; size: number; mime: string }
+interface EofMsg { type: 'eof'; id: string }
+interface HelloMsg { type: 'hello'; platform: string }
+type CtrlMsg = MetaMsg | EofMsg | HelloMsg
 
 function detectPlatform(): string {
   const ua = navigator.userAgent
@@ -34,58 +59,122 @@ function detectPlatform(): string {
 export function usePeer(): UsePeerResult {
   const peerRef = useRef<Peer | null>(null)
   const connectionRef = useRef<DataConnection | null>(null)
+  const pendingConnRef = useRef<DataConnection | null>(null)
   const lastRemoteIdRef = useRef<string | null>(null)
+  const inboundRef = useRef<Map<string, { meta: MetaMsg; chunks: Uint8Array[]; received: number }>>(new Map())
+  const currentInboundIdRef = useRef<string | null>(null)
+
   const [myId, setMyId] = useState<string | null>(null)
   const [status, setStatus] = useState<PeerStatus>('connecting')
-  const [connection, setConnection] = useState<DataConnection | null>(null)
   const [remoteId, setRemoteId] = useState<string | null>(null)
   const [remoteMeta, setRemoteMeta] = useState<PeerMeta | null>(null)
+  const [transfers, setTransfers] = useState<Transfer[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [connOpen, setConnOpen] = useState(false)
+
+  const upsert = useCallback((id: string, patch: Partial<Transfer>) => {
+    setTransfers((prev) => {
+      const idx = prev.findIndex((t) => t.id === id)
+      if (idx === -1) return prev
+      const next = [...prev]
+      next[idx] = { ...next[idx], ...patch }
+      return next
+    })
+  }, [])
+
+  const handleData = useCallback((data: unknown) => {
+    // String control msgs
+    if (typeof data === 'string') {
+      let msg: CtrlMsg
+      try { msg = JSON.parse(data) as CtrlMsg } catch { return }
+      if (msg.type === 'hello') {
+        setRemoteMeta({ platform: msg.platform })
+        return
+      }
+      if (msg.type === 'meta') {
+        inboundRef.current.set(msg.id, { meta: msg, chunks: [], received: 0 })
+        currentInboundIdRef.current = msg.id
+        setTransfers((prev) => [
+          ...prev,
+          { id: msg.id, direction: 'in', name: msg.name, size: msg.size, mime: msg.mime, bytes: 0, status: 'transferring' },
+        ])
+        return
+      }
+      if (msg.type === 'eof') {
+        const entry = inboundRef.current.get(msg.id)
+        if (!entry) return
+        const blob = new Blob(entry.chunks as BlobPart[], { type: entry.meta.mime || 'application/octet-stream' })
+        const url = URL.createObjectURL(blob)
+        upsert(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url })
+        const a = document.createElement('a')
+        a.href = url
+        a.download = entry.meta.name
+        a.rel = 'noopener'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        inboundRef.current.delete(msg.id)
+        if (currentInboundIdRef.current === msg.id) currentInboundIdRef.current = null
+        return
+      }
+      return
+    }
+    // Binary chunk
+    const id = currentInboundIdRef.current
+    if (!id) return
+    const entry = inboundRef.current.get(id)
+    if (!entry) return
+    const buf = data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array((data as ArrayBufferView).buffer)
+    entry.chunks.push(buf)
+    entry.received += buf.byteLength
+    upsert(id, { bytes: entry.received })
+  }, [upsert])
 
   const attachConnection = useCallback((conn: DataConnection) => {
+    pendingConnRef.current = conn
+
+    // Register data handler SYNCHRONOUSLY so no events are lost between
+    // 'open' and the React state update cycle.
+    conn.on('data', handleData)
+
     conn.on('open', () => {
+      if (pendingConnRef.current && pendingConnRef.current !== conn) {
+        try { conn.close() } catch { /* noop */ }
+        return
+      }
+      if (connectionRef.current && connectionRef.current.open && connectionRef.current !== conn) {
+        try { conn.close() } catch { /* noop */ }
+        return
+      }
       connectionRef.current = conn
+      pendingConnRef.current = null
       lastRemoteIdRef.current = conn.peer
-      setConnection(conn)
       setRemoteId(conn.peer)
       setStatus('paired')
+      setConnOpen(true)
       setError(null)
-      // Send our platform info as the first message
       try {
-        conn.send(JSON.stringify({ type: 'hello', platform: detectPlatform() }))
+        conn.send(JSON.stringify({ type: 'hello', platform: detectPlatform() } satisfies HelloMsg))
       } catch (e) {
         console.warn('failed to send hello', e)
       }
     })
 
-    // Intercept hello messages to set remoteMeta
-    const onData = (data: unknown) => {
-      if (typeof data !== 'string') return
-      try {
-        const msg = JSON.parse(data) as { type?: string; platform?: string }
-        if (msg.type === 'hello' && msg.platform) {
-          setRemoteMeta({ platform: msg.platform })
-        }
-      } catch {
-        /* not JSON or not a hello — ignore */
-      }
-    }
-    conn.on('data', onData)
-
     conn.on('close', () => {
+      if (pendingConnRef.current === conn) pendingConnRef.current = null
       if (connectionRef.current === conn) {
         connectionRef.current = null
-        setConnection(null)
+        setConnOpen(false)
         setRemoteMeta(null)
-        // Keep remoteId in lastRemoteIdRef for potential reconnect
         setStatus('reconnecting')
       }
     })
+
     conn.on('error', (err) => {
       console.error('connection error', err)
       setError(String(err))
     })
-  }, [])
+  }, [handleData])
 
   useEffect(() => {
     let cancelled = false
@@ -100,20 +189,11 @@ export function usePeer(): UsePeerResult {
       peer.on('open', (id) => {
         if (cancelled) return
         setMyId(id)
-        // If we have a lastRemoteId and the connection died, try to reconnect to it
-        if (lastRemoteIdRef.current && !connectionRef.current) {
-          setStatus('reconnecting')
-          const conn = peer.connect(lastRemoteIdRef.current, { reliable: true })
-          attachConnection(conn)
-        } else {
-          setStatus((s) => (s === 'paired' ? s : 'ready'))
-        }
+        setStatus((s) => (s === 'paired' || s === 'reconnecting' ? s : 'ready'))
       })
 
       peer.on('connection', (conn) => {
-        // If we already have a live connection, replace it (peer reconnecting)
         if (connectionRef.current && connectionRef.current.open && connectionRef.current.peer !== conn.peer) {
-          // Different peer is trying to connect; close old and accept new
           try { connectionRef.current.close() } catch { /* noop */ }
         }
         attachConnection(conn)
@@ -121,8 +201,6 @@ export function usePeer(): UsePeerResult {
 
       peer.on('disconnected', () => {
         if (cancelled) return
-        // Broker disconnected. P2P data may still be live; don't show error if paired.
-        // Try to reconnect to the broker silently.
         try { peer.reconnect() } catch { /* noop */ }
       })
 
@@ -140,13 +218,8 @@ export function usePeer(): UsePeerResult {
           setStatus('ready')
           return
         }
-        // 'network' / 'disconnected' / 'server-error': suppress visible error
-        // if we still believe we're paired; let PeerJS retry the broker.
         if (err.type === 'network' || err.type === 'server-error' || err.type === 'disconnected') {
-          if (connectionRef.current?.open) {
-            // Still have P2P channel — silent recovery
-            return
-          }
+          if (connectionRef.current?.open) return
         }
         setError(err.message || String(err))
         setStatus('error')
@@ -155,17 +228,18 @@ export function usePeer(): UsePeerResult {
 
     spinUp()
 
-    // On page becoming visible again (mobile foreground), try to recover
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') return
       const peer = peerRef.current
       if (!peer) return
-      // Reconnect broker if disconnected
       if (peer.disconnected && !peer.destroyed) {
         try { peer.reconnect() } catch { /* noop */ }
       }
-      // Re-establish P2P if it died but we have a known remote
-      if (!connectionRef.current && lastRemoteIdRef.current && myId) {
+      if (
+        !connectionRef.current &&
+        !pendingConnRef.current &&
+        lastRemoteIdRef.current
+      ) {
         setStatus('reconnecting')
         const conn = peer.connect(lastRemoteIdRef.current, { reliable: true })
         attachConnection(conn)
@@ -178,12 +252,61 @@ export function usePeer(): UsePeerResult {
       document.removeEventListener('visibilitychange', onVisibility)
       peerRef.current?.destroy()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [attachConnection])
+
+  const sendFile = useCallback(async (file: File) => {
+    const conn = connectionRef.current
+    if (!conn || !conn.open) return
+    const id = crypto.randomUUID()
+    const meta: MetaMsg = {
+      type: 'meta',
+      id,
+      name: file.name,
+      size: file.size,
+      mime: file.type || 'application/octet-stream',
+    }
+    setTransfers((prev) => [
+      ...prev,
+      { id, direction: 'out', name: file.name, size: file.size, mime: meta.mime, bytes: 0, status: 'transferring' },
+    ])
+    conn.send(JSON.stringify(meta))
+
+    const rawDc = (conn as unknown as { dataChannel?: RTCDataChannel }).dataChannel
+    if (rawDc) rawDc.bufferedAmountLowThreshold = LOW_WATER
+
+    let offset = 0
+    let sent = 0
+    while (offset < file.size) {
+      const slice = file.slice(offset, offset + CHUNK_SIZE)
+      const buf = await slice.arrayBuffer()
+      if (rawDc && rawDc.bufferedAmount > HIGH_WATER) {
+        await new Promise<void>((resolve) => {
+          const handler = () => { rawDc.removeEventListener('bufferedamountlow', handler); resolve() }
+          rawDc.addEventListener('bufferedamountlow', handler)
+        })
+      }
+      conn.send(buf)
+      offset += buf.byteLength
+      sent += buf.byteLength
+      if (sent % (CHUNK_SIZE * 32) === 0 || offset >= file.size) {
+        upsert(id, { bytes: sent })
+      }
+    }
+
+    conn.send(JSON.stringify({ type: 'eof', id } satisfies EofMsg))
+    upsert(id, { bytes: file.size, status: 'done' })
+  }, [upsert])
+
+  const sendFiles = useCallback(async (files: FileList | File[]) => {
+    for (const f of Array.from(files)) {
+      await sendFile(f)
+    }
+  }, [sendFile])
 
   function connect(target: string) {
     const peer = peerRef.current
-    if (!peer || !myId) return
+    if (!peer) return
+    if (connectionRef.current?.open || pendingConnRef.current) return
     setError(null)
     const conn = peer.connect(target, { reliable: true })
     attachConnection(conn)
@@ -197,5 +320,16 @@ export function usePeer(): UsePeerResult {
     setStatus('ready')
   }
 
-  return { myId, status, connection, remoteId, remoteMeta, connect, disconnect, error }
+  return {
+    myId,
+    status,
+    remoteId,
+    remoteMeta,
+    isConnected: connOpen,
+    transfers,
+    sendFiles,
+    connect,
+    disconnect,
+    error,
+  }
 }

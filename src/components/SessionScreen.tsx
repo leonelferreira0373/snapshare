@@ -1,31 +1,38 @@
 import { useRef, useState, useEffect, DragEvent } from 'react'
-import { DataConnection } from 'peerjs'
-import { useFileTransfer } from '../hooks/useFileTransfer'
+import { Transfer } from '../hooks/usePeer'
 import { TransferRow } from './TransferRow'
 import { deviceName } from '../lib/deviceName'
 import { Upload, LogOut, FileUp, Loader2 } from 'lucide-react'
 
 interface Props {
-  connection: DataConnection | null
+  isConnected: boolean
+  isReconnecting: boolean
   remoteId: string
   remotePlatform: string | undefined
-  isReconnecting: boolean
+  transfers: Transfer[]
+  sendFiles: (files: File[] | FileList) => Promise<void>
   onDisconnect: () => void
 }
 
-export function SessionScreen({ connection, remoteId, remotePlatform, isReconnecting, onDisconnect }: Props) {
-  const { transfers, sendFiles } = useFileTransfer(connection)
+export function SessionScreen({
+  isConnected,
+  isReconnecting,
+  remoteId,
+  remotePlatform,
+  transfers,
+  sendFiles,
+  onDisconnect,
+}: Props) {
   const [dragOver, setDragOver] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // If files were picked while disconnected, flush them when reconnected
   useEffect(() => {
-    if (connection && pendingFiles.length > 0) {
+    if (isConnected && pendingFiles.length > 0) {
       sendFiles(pendingFiles)
       setPendingFiles([])
     }
-  }, [connection, pendingFiles, sendFiles])
+  }, [isConnected, pendingFiles, sendFiles])
 
   const remoteName = deviceName(remoteId, remotePlatform)
 
@@ -36,7 +43,7 @@ export function SessionScreen({ connection, remoteId, remotePlatform, isReconnec
   function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return
     const arr = Array.from(files)
-    if (!connection) {
+    if (!isConnected) {
       setPendingFiles((prev) => [...prev, ...arr])
       return
     }
