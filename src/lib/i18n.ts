@@ -93,6 +93,9 @@ const pt: Dict = {
   stay_awake_on: 'Ecrã sempre ligado · Ligado',
   stay_awake_off: 'Ecrã sempre ligado · Desligado',
   stay_awake_hint: 'Recebe ficheiros mesmo com a app no fundo — o ecrã não desliga enquanto estiver ligado a outro dispositivo.',
+  cancel: 'Cancelar',
+  cancelled: 'Cancelado',
+  failed: 'Falhou',
 }
 
 const en: Dict = {
@@ -172,6 +175,9 @@ const en: Dict = {
   stay_awake_on: 'Stay awake · On',
   stay_awake_off: 'Stay awake · Off',
   stay_awake_hint: 'Keeps the screen on while paired so files arrive even when this tab is in the background.',
+  cancel: 'Cancel',
+  cancelled: 'Cancelled',
+  failed: 'Failed',
 }
 
 export const dictionaries: Record<Lang, Dict> = { pt, en }

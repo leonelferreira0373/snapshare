@@ -10,6 +10,7 @@ interface Props {
   remotePlatform?: string
   onResend?: (transfer: Transfer) => void
   canResend: boolean
+  onCancel?: (transfer: Transfer) => void
 }
 
 function formatBytes(n: number): string {
@@ -19,7 +20,7 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
-export function TransferRow({ transfer, remotePlatform, onResend, canResend }: Props) {
+export function TransferRow({ transfer, remotePlatform, onResend, canResend, onCancel }: Props) {
   const { t } = useT()
   const [copied, setCopied] = useState(false)
   const [resending, setResending] = useState(false)
@@ -82,6 +83,16 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend }: P
         </div>
         {transfer.status === 'done' && <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />}
         {transfer.status === 'failed' && <X className="h-4 w-4 shrink-0 text-red-500 dark:text-red-400" />}
+        {transfer.status === 'transferring' && onCancel && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onCancel(transfer) }}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:text-neutral-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+            aria-label={t('cancel')}
+            title={t('cancel')}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       {isTextCopyable && transfer.textContent && (
@@ -109,7 +120,9 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend }: P
                 ? <span className="text-emerald-600 dark:text-emerald-400">✓ {t('copied')}</span>
                 : <span className="inline-flex items-center gap-1"><Copy className="h-3 w-3" /> {t('tap_to_copy')}</span>)
               : t('complete'))
-            : `${pct}%`}
+            : transfer.status === 'failed'
+              ? <span className="text-red-600 dark:text-red-400">{transfer.error === 'cancelled' ? t('cancelled') : t('failed')}</span>
+              : `${pct}%`}
         </span>
         <div className="flex shrink-0 items-center gap-2">
           {transfer.direction === 'in' && transfer.status === 'done' && transfer.downloadUrl && (

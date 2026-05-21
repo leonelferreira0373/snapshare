@@ -30,6 +30,7 @@ interface Props {
   onForgetPair: (peerId: string) => void
   onSendFiles: (files: File[] | FileList) => Promise<void>
   onResend: (transfer: Transfer) => Promise<void>
+  onCancel: (transfer: Transfer) => void
 }
 
 // Tailwind class shortcuts for dual-mode surfaces.
@@ -46,7 +47,7 @@ const INPUT_CLS = 'border-zinc-200 bg-white text-zinc-900 placeholder-zinc-300 f
 
 export function HomeScreen({
   myId, status, peers, transfers, lastPairs, error,
-  onConnect, onDisconnectPeer, onDisconnectAll, onForgetPair, onSendFiles, onResend,
+  onConnect, onDisconnectPeer, onDisconnectAll, onForgetPair, onSendFiles, onResend, onCancel,
 }: Props) {
   const { t } = useT()
 
@@ -478,6 +479,7 @@ export function HomeScreen({
                   remotePlatform={peer?.platform ?? lastPair?.platform}
                   onResend={onResend}
                   canResend={canResend && hasOpenPeer}
+                  onCancel={onCancel}
                 />
               )
             })}

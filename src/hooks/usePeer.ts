@@ -42,6 +42,7 @@ export interface UsePeerResult {
   lastPairs: LastPair[]
   sendFiles: (files: FileList | File[]) => Promise<void>
   resendTransfer: (transfer: Transfer) => Promise<void>
+  cancelTransfer: (transfer: Transfer) => void
   connect: (remoteId: string) => void
   disconnectPeer: (peerId: string) => void
   disconnectAll: () => void
@@ -57,7 +58,12 @@ const LOW_WATER = 1 * 1024 * 1024
 interface MetaMsg { type: 'meta'; id: string; name: string; size: number; mime: string }
 interface EofMsg { type: 'eof'; id: string }
 interface HelloMsg { type: 'hello'; platform: string }
-type CtrlMsg = MetaMsg | EofMsg | HelloMsg
+interface CancelMsg { type: 'cancel'; id: string }
+type CtrlMsg = MetaMsg | EofMsg | HelloMsg | CancelMsg
+
+class TransferCancelled extends Error {
+  constructor() { super('cancelled') }
+}
 
 function detectPlatform(): string {
   const ua = navigator.userAgent
@@ -87,6 +93,8 @@ export function usePeer(): UsePeerResult {
   const currentInboundIdRef = useRef<Map<string, string>>(new Map())
   // transferId → File for outbound transfers, so we can resend without re-pick
   const sourceFilesRef = useRef<Map<string, File>>(new Map())
+  // transferIds that have been cancelled; the send loop polls this each chunk
+  const cancelledRef = useRef<Set<string>>(new Set())
 
   const [myId, setMyId] = useState<string | null>(null)
   const [status, setStatus] = useState<PeerStatus>('connecting')
@@ -146,6 +154,20 @@ export function usePeer(): UsePeerResult {
             bytes: 0, status: 'transferring',
           },
         ])
+        return
+      }
+      if (msg.type === 'cancel') {
+        // Other side cancelled — drop any in-progress inbound, mark transfer failed,
+        // and (for outgoing) flip cancelledRef so the local send loop bails.
+        cancelledRef.current.add(msg.id)
+        const key = `${peerId}:${msg.id}`
+        if (inboundRef.current.has(key)) {
+          inboundRef.current.delete(key)
+          if (currentInboundIdRef.current.get(peerId) === msg.id) {
+            currentInboundIdRef.current.delete(peerId)
+          }
+        }
+        upsertTransfer(msg.id, { status: 'failed', error: 'cancelled' })
         return
       }
       if (msg.type === 'eof') {
@@ -348,6 +370,13 @@ export function usePeer(): UsePeerResult {
     let lastReported = 0
 
     while (offset < file.size) {
+      if (cancelledRef.current.has(transferId)) {
+        // Notify the receiver to clean up its inbound buffer.
+        try {
+          conn.send(JSON.stringify({ type: 'cancel', id: transferId } satisfies CancelMsg))
+        } catch { /* conn may already be closed */ }
+        throw new TransferCancelled()
+      }
       const slice = file.slice(offset, offset + CHUNK_SIZE)
       const buf = await slice.arrayBuffer()
       if (rawDc && rawDc.bufferedAmount > HIGH_WATER) {
@@ -410,12 +439,37 @@ export function usePeer(): UsePeerResult {
             await sendFileToConn(job.conn, job.file, job.transferId)
             upsertTransfer(job.transferId, { bytes: job.file.size, status: 'done' })
           } catch (e) {
-            upsertTransfer(job.transferId, { status: 'failed', error: String(e) })
+            if (e instanceof TransferCancelled) {
+              upsertTransfer(job.transferId, { status: 'failed', error: 'cancelled' })
+            } else {
+              upsertTransfer(job.transferId, { status: 'failed', error: String(e) })
+            }
           }
         }
       }),
     )
   }, [sendFileToConn, upsertTransfer])
+
+  const cancelTransfer = useCallback((transfer: Transfer) => {
+    cancelledRef.current.add(transfer.id)
+    if (transfer.direction === 'in') {
+      // Tell the sender to stop; clean up our partial buffer
+      const conn = connectionsRef.current.get(transfer.peerId)
+      if (conn?.open) {
+        try {
+          conn.send(JSON.stringify({ type: 'cancel', id: transfer.id } satisfies CancelMsg))
+        } catch { /* noop */ }
+      }
+      const key = `${transfer.peerId}:${transfer.id}`
+      inboundRef.current.delete(key)
+      if (currentInboundIdRef.current.get(transfer.peerId) === transfer.id) {
+        currentInboundIdRef.current.delete(transfer.peerId)
+      }
+      upsertTransfer(transfer.id, { status: 'failed', error: 'cancelled' })
+    }
+    // For outgoing, the sendFileToConn loop will spot the cancelledRef flag
+    // on its next chunk iteration, send the cancel notification, and throw.
+  }, [upsertTransfer])
 
   const resendTransfer = useCallback(async (transfer: Transfer) => {
     let file: File | null = null
@@ -484,6 +538,7 @@ export function usePeer(): UsePeerResult {
     lastPairs,
     sendFiles,
     resendTransfer,
+    cancelTransfer,
     connect,
     disconnectPeer,
     disconnectAll,

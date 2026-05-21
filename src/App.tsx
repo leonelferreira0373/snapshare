@@ -75,6 +75,7 @@ function AppBody() {
       onForgetPair={peer.forgetPair}
       onSendFiles={peer.sendFiles}
       onResend={peer.resendTransfer}
+      onCancel={peer.cancelTransfer}
     />
   )
 }
