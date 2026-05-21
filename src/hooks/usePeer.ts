@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Peer, { DataConnection } from 'peerjs'
+import { generateShortId } from '../lib/codeFromId'
 
 export type PeerStatus = 'connecting' | 'ready' | 'paired' | 'error'
 
@@ -13,6 +14,8 @@ export interface UsePeerResult {
   error: string | null
 }
 
+const MAX_ID_RETRIES = 4
+
 export function usePeer(): UsePeerResult {
   const peerRef = useRef<Peer | null>(null)
   const [myId, setMyId] = useState<string | null>(null)
@@ -22,33 +25,15 @@ export function usePeer(): UsePeerResult {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const peer = new Peer({ debug: 1 })
-    peerRef.current = peer
-
-    peer.on('open', (id) => {
-      setMyId(id)
-      setStatus('ready')
-    })
-
-    peer.on('connection', (conn) => {
-      attachConnection(conn)
-    })
-
-    peer.on('error', (err) => {
-      console.error('peer error', err)
-      setError(err.message || String(err))
-      if (err.type === 'peer-unavailable') {
-        setStatus('ready')
-      } else {
-        setStatus('error')
-      }
-    })
+    let cancelled = false
+    let retries = 0
 
     function attachConnection(conn: DataConnection) {
       conn.on('open', () => {
         setConnection(conn)
         setRemoteId(conn.peer)
         setStatus('paired')
+        setError(null)
       })
       conn.on('close', () => {
         setConnection(null)
@@ -61,10 +46,49 @@ export function usePeer(): UsePeerResult {
       })
     }
 
-    ;(peer as unknown as { _attachConnection: typeof attachConnection })._attachConnection = attachConnection
+    function spinUp() {
+      if (cancelled) return
+      const candidateId = `snap-${generateShortId()}`
+      const peer = new Peer(candidateId, { debug: 1 })
+      peerRef.current = peer
+
+      peer.on('open', (id) => {
+        if (cancelled) return
+        setMyId(id)
+        setStatus('ready')
+      })
+
+      peer.on('connection', (conn) => {
+        attachConnection(conn)
+      })
+
+      peer.on('error', (err) => {
+        if (cancelled) return
+        console.error('peer error', err)
+        // ID collision — recreate with a new short ID
+        if (err.type === 'unavailable-id' && retries < MAX_ID_RETRIES) {
+          retries++
+          peer.destroy()
+          spinUp()
+          return
+        }
+        if (err.type === 'peer-unavailable') {
+          setError('Code not found. Check the code and try again.')
+          setStatus('ready')
+          return
+        }
+        setError(err.message || String(err))
+        setStatus('error')
+      })
+
+      ;(peer as unknown as { _attachConnection: typeof attachConnection })._attachConnection = attachConnection
+    }
+
+    spinUp()
 
     return () => {
-      peer.destroy()
+      cancelled = true
+      peerRef.current?.destroy()
     }
   }, [])
 
