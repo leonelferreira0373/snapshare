@@ -23,6 +23,9 @@ export interface Transfer {
   status: TransferStatus
   error?: string
   downloadUrl?: string
+  // For text-like payloads under a reasonable cap, we keep the decoded
+  // string so the UI can offer a tap-to-copy interaction.
+  textContent?: string
 }
 
 export interface PairedPeer {
@@ -150,14 +153,40 @@ export function usePeer(): UsePeerResult {
           type: entry.meta.mime || 'application/octet-stream',
         })
         const url = URL.createObjectURL(blob)
-        upsertTransfer(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url })
-        const a = document.createElement('a')
-        a.href = url
-        a.download = entry.meta.name
-        a.rel = 'noopener'
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
+        const isText =
+          entry.meta.mime?.startsWith('text/') ||
+          /\.(txt|md|csv|log|json|xml|yml|yaml|html|css|js|ts)$/i.test(entry.meta.name)
+        const TEXT_PREVIEW_CAP = 1024 * 1024 // 1 MB cap for tap-to-copy
+
+        // Auto-download (lands in Downloads / Gallery) for binary payloads.
+        // For text we skip auto-download — the row becomes tap-to-copy instead,
+        // and the user can still hit "Save again" if they want a file copy.
+        if (!isText) {
+          const a = document.createElement('a')
+          a.href = url
+          a.download = entry.meta.name
+          a.rel = 'noopener'
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+        }
+
+        if (isText && entry.meta.size <= TEXT_PREVIEW_CAP) {
+          // Read text out of the blob and store it on the transfer row.
+          blob.text().then((text) => {
+            upsertTransfer(msg.id, {
+              status: 'done',
+              bytes: entry.meta.size,
+              downloadUrl: url,
+              textContent: text,
+            })
+          }).catch(() => {
+            upsertTransfer(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url })
+          })
+        } else {
+          upsertTransfer(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url })
+        }
+
         inboundRef.current.delete(key)
         if (currentInboundIdRef.current.get(peerId) === msg.id) {
           currentInboundIdRef.current.delete(peerId)

@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { Transfer } from '../hooks/usePeer'
 import { deviceName } from '../lib/deviceName'
 import { iconForFile } from '../lib/fileIcon'
 import { useT } from '../lib/i18n'
-import { ArrowDown, ArrowUp, Check, Download, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Download, X, Copy } from 'lucide-react'
 
 interface Props {
   transfer: Transfer
@@ -18,6 +19,7 @@ function formatBytes(n: number): string {
 
 export function TransferRow({ transfer, remotePlatform }: Props) {
   const { t } = useT()
+  const [copied, setCopied] = useState(false)
   const pct = transfer.size > 0 ? Math.min(100, Math.round((transfer.bytes / transfer.size) * 100)) : 0
   const FileIcon = iconForFile(transfer.name, transfer.mime)
   const DirIcon = transfer.direction === 'in' ? ArrowDown : ArrowUp
@@ -29,14 +31,35 @@ export function TransferRow({ transfer, remotePlatform }: Props) {
   const dirBgColor = transfer.direction === 'in'
     ? 'bg-emerald-50 dark:bg-emerald-950/40'
     : 'bg-sky-50 dark:bg-sky-950/40'
+  const dirSolid = transfer.direction === 'in' ? 'bg-emerald-500' : 'bg-sky-500'
+
+  const isTextCopyable = transfer.status === 'done' && typeof transfer.textContent === 'string'
+
+  async function copyText() {
+    if (!transfer.textContent) return
+    try {
+      await navigator.clipboard.writeText(transfer.textContent)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* permission denied */ }
+  }
+
+  const baseClasses = 'flex flex-col gap-1.5 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm shadow-zinc-900/[0.03] dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none'
+  const interactiveClasses = isTextCopyable
+    ? 'cursor-pointer transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700/50 dark:hover:bg-emerald-950/20'
+    : ''
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm shadow-zinc-900/[0.03] dark:border-neutral-800 dark:bg-neutral-900/60 dark:shadow-none">
+    <div
+      className={`${baseClasses} ${interactiveClasses}`}
+      onClick={isTextCopyable ? copyText : undefined}
+      role={isTextCopyable ? 'button' : undefined}
+      title={isTextCopyable ? t('tap_to_copy') : undefined}
+    >
       <div className="flex items-center gap-2.5">
-        {/* File-type icon, color-coded by direction */}
         <div className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${dirBgColor}`}>
           <FileIcon className={`h-4 w-4 ${dirColor}`} />
-          <span className={`absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white ${dirColor.replace('text-', 'bg-')} dark:border-neutral-900`}>
+          <span className={`absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white ${dirSolid} dark:border-neutral-900`}>
             <DirIcon className="h-2.5 w-2.5 text-white" />
           </span>
         </div>
@@ -50,19 +73,39 @@ export function TransferRow({ transfer, remotePlatform }: Props) {
         {transfer.status === 'failed' && <X className="h-4 w-4 shrink-0 text-red-500 dark:text-red-400" />}
       </div>
 
-      <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-neutral-800">
-        <div
-          className={`h-full transition-[width] duration-150 ${transfer.status === 'failed' ? 'bg-red-500' : 'bg-zinc-900 dark:bg-white'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      {/* Inline text preview for text payloads */}
+      {isTextCopyable && transfer.textContent && (
+        <div className="rounded-md bg-zinc-50 px-2.5 py-1.5 dark:bg-neutral-900/80">
+          <p className="line-clamp-2 break-words text-[11px] leading-snug text-zinc-600 dark:text-neutral-400">
+            {transfer.textContent}
+          </p>
+        </div>
+      )}
+
+      {transfer.status !== 'done' && (
+        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-neutral-800">
+          <div
+            className={`h-full transition-[width] duration-150 ${transfer.status === 'failed' ? 'bg-red-500' : 'bg-zinc-900 dark:bg-white'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-500">
-        <span>{transfer.status === 'done' ? t('complete') : `${pct}%`}</span>
+        <span>
+          {transfer.status === 'done'
+            ? (isTextCopyable
+              ? (copied
+                ? <span className="text-emerald-600 dark:text-emerald-400">✓ {t('copied')}</span>
+                : <span className="inline-flex items-center gap-1"><Copy className="h-3 w-3" /> {t('tap_to_copy')}</span>)
+              : t('complete'))
+            : `${pct}%`}
+        </span>
         {transfer.direction === 'in' && transfer.status === 'done' && transfer.downloadUrl && (
           <a
             href={transfer.downloadUrl}
             download={transfer.name}
+            onClick={(e) => e.stopPropagation()}
             className="flex shrink-0 items-center gap-1 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
           >
             <Download className="h-3 w-3" /> {t('save_again')}

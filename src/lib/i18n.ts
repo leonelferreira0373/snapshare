@@ -85,6 +85,9 @@ const pt: Dict = {
   clipboard_on: 'Captura ligada',
   clipboard_off: 'Captura desligada',
   clipboard_permission: 'Permissão de área de transferência negada. Ativa-a nas definições do navegador.',
+  tap_to_copy: 'Tocar para copiar',
+  copied: 'Copiado',
+  copy_text: 'Copiar texto',
 }
 
 const en: Dict = {
@@ -156,6 +159,9 @@ const en: Dict = {
   clipboard_on: 'Capture on',
   clipboard_off: 'Capture off',
   clipboard_permission: 'Clipboard permission denied. Enable it in browser settings.',
+  tap_to_copy: 'Tap to copy',
+  copied: 'Copied',
+  copy_text: 'Copy text',
 }
 
 export const dictionaries: Record<Lang, Dict> = { pt, en }
