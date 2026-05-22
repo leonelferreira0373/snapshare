@@ -121,6 +121,43 @@ export function HomeScreen({
     }
   }, [hasOpenPeer, pendingFiles, onSendFiles])
 
+  // Global paste handler: Ctrl+V / Cmd+V anywhere on the page picks up
+  // files (images, screenshots, etc.) from the clipboard and ships them.
+  // Doesn't require the clipboard auto-capture toggle to be on.
+  useEffect(() => {
+    const stamp = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const extFor = (mime: string) => {
+      if (mime === 'image/jpeg') return 'jpg'
+      if (mime === 'image/svg+xml') return 'svg'
+      if (mime?.startsWith('image/')) return mime.split('/')[1]
+      if (mime?.startsWith('text/')) return mime.split('/')[1] || 'txt'
+      return mime?.split('/')[1]?.split('+')[0] || 'bin'
+    }
+    const onPaste = (e: ClipboardEvent) => {
+      // Ignore paste targeting form inputs so users can still paste a code
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      const items = e.clipboardData?.items
+      if (!items) return
+      const files: File[] = []
+      for (const item of Array.from(items)) {
+        if (item.kind !== 'file') continue
+        const raw = item.getAsFile()
+        if (!raw) continue
+        const name = raw.name && raw.name !== 'image.png'
+          ? raw.name
+          : `clipboard-${stamp()}.${extFor(raw.type)}`
+        files.push(new File([raw], name, { type: raw.type || 'application/octet-stream', lastModified: raw.lastModified || Date.now() }))
+      }
+      if (files.length === 0) return
+      e.preventDefault()
+      if (hasOpenPeer) onSendFiles(files)
+      else setPendingFiles((prev) => [...prev, ...files])
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [hasOpenPeer, onSendFiles])
+
   if (status === 'connecting' || !myId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
