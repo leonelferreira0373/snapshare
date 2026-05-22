@@ -59,6 +59,37 @@ const CHUNK_SIZE = 16 * 1024
 const HIGH_WATER = 16 * 1024 * 1024
 const LOW_WATER = 1 * 1024 * 1024
 
+// ICE servers used for NAT traversal. STUN is enough for ~90% of cases;
+// TURN relays the actual bytes when both peers are behind symmetric NAT /
+// CGNAT (common with mobile carriers, hotel WiFi, etc.). The Open Relay
+// servers below are public and shared — they cost the operator nothing
+// but are rate-limited. For dedicated bandwidth, sign up at metered.ca
+// (50 GB/mo free) and swap these credentials.
+const ICE_SERVERS = [
+  // Multiple STUN — try the obvious peer-discovery path first
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:openrelay.metered.ca:80' },
+  // TURN relays — when STUN can't punch through. Multiple ports/transports
+  // so at least one is likely to be reachable from restrictive networks.
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+]
+
 interface MetaMsg { type: 'meta'; id: string; name: string; size: number; mime: string }
 interface EofMsg { type: 'eof'; id: string }
 interface HelloMsg { type: 'hello'; platform: string }
@@ -283,7 +314,10 @@ export function usePeer(): UsePeerResult {
       if (cancelled) return
       const persisted = !forceFresh ? loadPeerId() : null
       const candidateId = persisted || `snap-${generateShortId()}`
-      const peer = new Peer(candidateId, { debug: 1 })
+      const peer = new Peer(candidateId, {
+        debug: 1,
+        config: { iceServers: ICE_SERVERS },
+      })
       peerRef.current = peer
 
       peer.on('open', (id) => {
