@@ -1,5 +1,8 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/((?!docs/|assets/|favicon\\.svg|manifest\\.webmanifest|.*\\.(?:pdf|png|jpe?g|svg|webp|ico|webmanifest|js|css|map|txt|woff2?)).*)",
+      "destination": "/"
+    }
   ]
 }
