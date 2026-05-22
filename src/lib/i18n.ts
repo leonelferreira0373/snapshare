@@ -100,6 +100,11 @@ const pt: Dict = {
   doc_overview: 'Visão Geral do Serviço',
   download_pdf_pt: 'Descarregar PDF · Português',
   download_pdf_en: 'Descarregar PDF · Inglês',
+  reconnect: 'Reconectar',
+  open_link: 'Abrir ligação',
+  sent_at: 'Enviado às',
+  received_at: 'Recebido às',
+  took: 'demorou',
 }
 
 const en: Dict = {
@@ -186,6 +191,11 @@ const en: Dict = {
   doc_overview: 'Service Overview',
   download_pdf_pt: 'Download PDF · Portuguese',
   download_pdf_en: 'Download PDF · English',
+  reconnect: 'Reconnect',
+  open_link: 'Open link',
+  sent_at: 'Sent at',
+  received_at: 'Received at',
+  took: 'took',
 }
 
 export const dictionaries: Record<Lang, Dict> = { pt, en }

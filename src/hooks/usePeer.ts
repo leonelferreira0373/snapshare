@@ -26,6 +26,9 @@ export interface Transfer {
   // For text-like payloads under a reasonable cap, we keep the decoded
   // string so the UI can offer a tap-to-copy interaction.
   textContent?: string
+  // Timing — both as epoch milliseconds, set as soon as we know.
+  startedAt: number
+  completedAt?: number
 }
 
 export interface PairedPeer {
@@ -44,6 +47,7 @@ export interface UsePeerResult {
   resendTransfer: (transfer: Transfer) => Promise<void>
   cancelTransfer: (transfer: Transfer) => void
   connect: (remoteId: string) => void
+  reconnectPeer: (peerId: string) => void
   disconnectPeer: (peerId: string) => void
   disconnectAll: () => void
   forgetPair: (peerId: string) => void
@@ -152,13 +156,12 @@ export function usePeer(): UsePeerResult {
             id: msg.id, peerId, direction: 'in',
             name: msg.name, size: msg.size, mime: msg.mime,
             bytes: 0, status: 'transferring',
+            startedAt: Date.now(),
           },
         ])
         return
       }
       if (msg.type === 'cancel') {
-        // Other side cancelled — drop any in-progress inbound, mark transfer failed,
-        // and (for outgoing) flip cancelledRef so the local send loop bails.
         cancelledRef.current.add(msg.id)
         const key = `${peerId}:${msg.id}`
         if (inboundRef.current.has(key)) {
@@ -167,7 +170,7 @@ export function usePeer(): UsePeerResult {
             currentInboundIdRef.current.delete(peerId)
           }
         }
-        upsertTransfer(msg.id, { status: 'failed', error: 'cancelled' })
+        upsertTransfer(msg.id, { status: 'failed', error: 'cancelled', completedAt: Date.now() })
         return
       }
       if (msg.type === 'eof') {
@@ -196,20 +199,21 @@ export function usePeer(): UsePeerResult {
           a.remove()
         }
 
+        const completedAt = Date.now()
         if (isText && entry.meta.size <= TEXT_PREVIEW_CAP) {
-          // Read text out of the blob and store it on the transfer row.
           blob.text().then((text) => {
             upsertTransfer(msg.id, {
               status: 'done',
               bytes: entry.meta.size,
               downloadUrl: url,
               textContent: text,
+              completedAt,
             })
           }).catch(() => {
-            upsertTransfer(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url })
+            upsertTransfer(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url, completedAt })
           })
         } else {
-          upsertTransfer(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url })
+          upsertTransfer(msg.id, { status: 'done', bytes: entry.meta.size, downloadUrl: url, completedAt })
         }
 
         inboundRef.current.delete(key)
@@ -409,6 +413,7 @@ export function usePeer(): UsePeerResult {
     interface Job { file: File; conn: DataConnection; transferId: string }
     const jobs: Job[] = []
     const queuedRows: Transfer[] = []
+    const startedAt = Date.now()
     for (const file of arr) {
       for (const conn of liveConns) {
         const transferId = crypto.randomUUID()
@@ -419,6 +424,7 @@ export function usePeer(): UsePeerResult {
           name: file.name, size: file.size,
           mime: file.type || 'application/octet-stream',
           bytes: 0, status: 'transferring',
+          startedAt,
         })
       }
     }
@@ -437,12 +443,13 @@ export function usePeer(): UsePeerResult {
         for (const job of list) {
           try {
             await sendFileToConn(job.conn, job.file, job.transferId)
-            upsertTransfer(job.transferId, { bytes: job.file.size, status: 'done' })
+            upsertTransfer(job.transferId, { bytes: job.file.size, status: 'done', completedAt: Date.now() })
           } catch (e) {
+            const completedAt = Date.now()
             if (e instanceof TransferCancelled) {
-              upsertTransfer(job.transferId, { status: 'failed', error: 'cancelled' })
+              upsertTransfer(job.transferId, { status: 'failed', error: 'cancelled', completedAt })
             } else {
-              upsertTransfer(job.transferId, { status: 'failed', error: String(e) })
+              upsertTransfer(job.transferId, { status: 'failed', error: String(e), completedAt })
             }
           }
         }
@@ -505,6 +512,22 @@ export function usePeer(): UsePeerResult {
     attachConnection(conn)
   }
 
+  // Force a fresh connection attempt to a known peer. Closes any
+  // half-open/dead connection first, then opens a new one. Used by the
+  // refresh button on a paired-peer row.
+  function reconnectPeer(peerId: string) {
+    const peer = peerRef.current
+    if (!peer || !peerId) return
+    try { connectionsRef.current.get(peerId)?.close() } catch { /* noop */ }
+    try { pendingConnsRef.current.get(peerId)?.close() } catch { /* noop */ }
+    connectionsRef.current.delete(peerId)
+    pendingConnsRef.current.delete(peerId)
+    setError(null)
+    upsertPeer(peerId, { status: 'connecting' })
+    const conn = peer.connect(peerId, { reliable: true })
+    attachConnection(conn)
+  }
+
   function disconnectPeer(peerId: string) {
     connectionsRef.current.get(peerId)?.close()
     pendingConnsRef.current.get(peerId)?.close()
@@ -540,6 +563,7 @@ export function usePeer(): UsePeerResult {
     resendTransfer,
     cancelTransfer,
     connect,
+    reconnectPeer,
     disconnectPeer,
     disconnectAll,
     forgetPair,

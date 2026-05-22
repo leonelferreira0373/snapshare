@@ -3,7 +3,7 @@ import { Transfer } from '../hooks/usePeer'
 import { deviceName } from '../lib/deviceName'
 import { iconForFile } from '../lib/fileIcon'
 import { useT } from '../lib/i18n'
-import { ArrowDown, ArrowUp, Check, Download, X, Copy, Send } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Download, X, Copy, Send, ExternalLink } from 'lucide-react'
 
 interface Props {
   transfer: Transfer
@@ -20,6 +20,33 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
+function formatTime(ms: number): string {
+  const d = new Date(ms)
+  const today = new Date()
+  const isToday = d.toDateString() === today.toDateString()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  if (isToday) return `${hh}:${mm}`
+  return `${d.getDate()}/${d.getMonth() + 1} ${hh}:${mm}`
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms} ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  const m = Math.floor(ms / 60000)
+  const s = Math.round((ms % 60000) / 1000)
+  return `${m}m ${s}s`
+}
+
+// Match a single URL inside the trimmed text (returns the URL or null)
+function extractUrl(text: string): string | null {
+  const trimmed = text.trim()
+  // Allow simple URLs and bare http(s) URLs anywhere in the string
+  const match = trimmed.match(/\bhttps?:\/\/[^\s<>"']+/i)
+  if (match) return match[0]
+  return null
+}
+
 export function TransferRow({ transfer, remotePlatform, onResend, canResend, onCancel }: Props) {
   const { t } = useT()
   const [copied, setCopied] = useState(false)
@@ -28,7 +55,6 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend, onC
   const FileIcon = iconForFile(transfer.name, transfer.mime)
   const DirIcon = transfer.direction === 'in' ? ArrowDown : ArrowUp
   const peerName = deviceName(transfer.peerId, remotePlatform)
-  const dirLabel = transfer.direction === 'in' ? t('from') : t('to')
   const dirColor = transfer.direction === 'in'
     ? 'text-emerald-600 dark:text-emerald-400'
     : 'text-sky-600 dark:text-sky-400'
@@ -39,6 +65,7 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend, onC
 
   const isTextCopyable = transfer.status === 'done' && typeof transfer.textContent === 'string'
   const showResend = transfer.status === 'done' && canResend && onResend !== undefined
+  const urlInText = isTextCopyable && transfer.textContent ? extractUrl(transfer.textContent) : null
 
   async function copyText() {
     if (!transfer.textContent) return
@@ -61,6 +88,17 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend, onC
     ? 'cursor-pointer transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700/50 dark:hover:bg-emerald-950/20'
     : ''
 
+  // Timestamp / duration line
+  const timestampText = (() => {
+    if (!transfer.startedAt) return null
+    const verb = transfer.direction === 'out' ? t('sent_at') : t('received_at')
+    if (transfer.completedAt && transfer.completedAt >= transfer.startedAt) {
+      const dur = formatDuration(transfer.completedAt - transfer.startedAt)
+      return `${verb} ${formatTime(transfer.completedAt)} · ${t('took')} ${dur}`
+    }
+    return `${verb} ${formatTime(transfer.startedAt)}`
+  })()
+
   return (
     <div
       className={`${baseClasses} ${interactiveClasses}`}
@@ -78,7 +116,7 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend, onC
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">{transfer.name}</p>
           <p className="text-[11px] text-zinc-500 dark:text-neutral-500">
-            {formatBytes(transfer.size)} · {dirLabel} {peerName}
+            {formatBytes(transfer.size)} · {peerName}
           </p>
         </div>
         {transfer.status === 'done' && <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />}
@@ -103,10 +141,10 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend, onC
         </div>
       )}
 
-      {transfer.status !== 'done' && (
+      {transfer.status !== 'done' && transfer.status !== 'failed' && (
         <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-neutral-800">
           <div
-            className={`h-full transition-[width] duration-150 ${transfer.status === 'failed' ? 'bg-red-500' : 'bg-zinc-900 dark:bg-white'}`}
+            className="h-full bg-zinc-900 transition-[width] duration-150 dark:bg-white"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -125,6 +163,17 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend, onC
               : `${pct}%`}
         </span>
         <div className="flex shrink-0 items-center gap-2">
+          {urlInText && (
+            <a
+              href={urlInText}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-zinc-700 hover:text-zinc-900 dark:text-neutral-300 dark:hover:text-white"
+            >
+              <ExternalLink className="h-3 w-3" /> {t('open_link')}
+            </a>
+          )}
           {transfer.direction === 'in' && transfer.status === 'done' && transfer.downloadUrl && (
             <a
               href={transfer.downloadUrl}
@@ -146,6 +195,10 @@ export function TransferRow({ transfer, remotePlatform, onResend, canResend, onC
           )}
         </div>
       </div>
+
+      {timestampText && (
+        <p className="text-[10px] text-zinc-400 dark:text-neutral-600">{timestampText}</p>
+      )}
     </div>
   )
 }

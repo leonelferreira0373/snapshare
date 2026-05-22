@@ -70,6 +70,7 @@ function AppBody() {
       lastPairs={peer.lastPairs}
       error={peer.error}
       onConnect={peer.connect}
+      onReconnectPeer={peer.reconnectPeer}
       onDisconnectPeer={peer.disconnectPeer}
       onDisconnectAll={peer.disconnectAll}
       onForgetPair={peer.forgetPair}

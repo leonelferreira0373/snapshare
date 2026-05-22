@@ -25,6 +25,7 @@ interface Props {
   lastPairs: LastPair[]
   error: string | null
   onConnect: (id: string) => void
+  onReconnectPeer: (peerId: string) => void
   onDisconnectPeer: (peerId: string) => void
   onDisconnectAll: () => void
   onForgetPair: (peerId: string) => void
@@ -47,7 +48,7 @@ const INPUT_CLS = 'border-zinc-200 bg-white text-zinc-900 placeholder-zinc-300 f
 
 export function HomeScreen({
   myId, status, peers, transfers, lastPairs, error,
-  onConnect, onDisconnectPeer, onDisconnectAll, onForgetPair, onSendFiles, onResend, onCancel,
+  onConnect, onReconnectPeer, onDisconnectPeer, onDisconnectAll, onForgetPair, onSendFiles, onResend, onCancel,
 }: Props) {
   const { t } = useT()
 
@@ -231,7 +232,8 @@ export function HomeScreen({
 
   // ---------- subcomponents ----------
 
-  const codeHeader = (
+  // DESKTOP HEADER (single combined card — unchanged from before)
+  const codeHeaderDesktop = (
     <header className={`flex flex-col gap-3 rounded-2xl border p-3 ${SURFACE}`}>
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
@@ -299,6 +301,73 @@ export function HomeScreen({
     </header>
   )
 
+  // MOBILE TOOLBAR — compact 5-icon row only (no code text here)
+  const codeHeaderMobile = (
+    <div className="flex flex-col gap-3">
+      <div className={`flex items-center justify-between gap-2 rounded-2xl border p-2 ${SURFACE}`}>
+        <button
+          onClick={() => setScannerOpen(true)}
+          className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition-colors active:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:active:bg-emerald-400"
+          aria-label={t('scan_qr_camera_screen')}
+        >
+          <ScanLine className="h-5 w-5" />
+        </button>
+        <button
+          onClick={toggleClipboard}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
+            clipboardOn
+              ? 'bg-emerald-500 text-white shadow-sm dark:bg-emerald-500 dark:text-emerald-950'
+              : PILL_BTN
+          }`}
+          aria-label={t('clipboard_capture')}
+        >
+          <ClipboardList className="h-5 w-5" />
+        </button>
+        {wakeLockSupported && (
+          <button
+            onClick={toggleStayAwake}
+            className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
+              stayAwakeOn
+                ? 'bg-amber-500 text-white shadow-sm dark:bg-amber-500 dark:text-amber-950'
+                : PILL_BTN
+            }`}
+            aria-label={t('stay_awake')}
+          >
+            <Sunrise className="h-5 w-5" />
+          </button>
+        )}
+        <button
+          onClick={copyCode}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl ${PILL_BTN}`}
+          aria-label={t('copy_code')}
+        >
+          {copied ? <Check className="h-5 w-5 text-emerald-500 dark:text-emerald-400" /> : <Copy className="h-5 w-5" />}
+        </button>
+        <button
+          onClick={() => setQrExpanded((v) => !v)}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl ${PILL_BTN}`}
+          aria-label={t('toggle_qr')}
+        >
+          <QrCode className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Mobile dedicated code card */}
+      <div className={`flex flex-col items-center gap-1 rounded-2xl border px-4 py-4 ${SURFACE}`}>
+        <p className={`text-[10px] uppercase tracking-[0.25em] ${TEXT_MUTED}`}>{t('your_code')}</p>
+        <p className={`font-mono text-3xl font-bold tracking-[0.25em] ${TEXT_BASE}`}>
+          {formatCode(shortCode)}
+        </p>
+        {qrExpanded && (
+          <div className="mt-3 flex flex-col items-center gap-2 border-t border-zinc-200 pt-3 dark:border-neutral-800">
+            <QRDisplay value={url} size={220} />
+            <p className={`text-xs ${TEXT_MUTED}`}>{t('scan_other')}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   const peersList = hasAnyPeer && (
     <section className={`flex flex-col gap-2 rounded-2xl border p-2 ${SURFACE_SOFT}`}>
       <div className="flex items-center justify-between px-1 pt-1">
@@ -327,8 +396,16 @@ export function HomeScreen({
               <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
               <p className={`truncate text-sm font-medium ${TEXT_BASE}`}>{deviceName(p.peerId, p.platform)}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1">
               {(reconnecting || connecting) && <Loader2 className={`h-3 w-3 animate-spin ${TEXT_SOFT}`} />}
+              <button
+                onClick={() => onReconnectPeer(p.peerId)}
+                className={`rounded-md p-1 ${TEXT_MUTED} hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-neutral-800 dark:hover:text-white`}
+                aria-label={t('reconnect')}
+                title={t('reconnect')}
+              >
+                <RefreshCcw className="h-3.5 w-3.5" />
+              </button>
               <button
                 onClick={() => onDisconnectPeer(p.peerId)}
                 className={`rounded-md p-1 ${TEXT_MUTED} hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-neutral-800 dark:hover:text-white`}
@@ -542,7 +619,7 @@ export function HomeScreen({
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-4 lg:px-6 lg:pb-6 lg:pt-6">
       {/* Mobile */}
       <div className="flex flex-col gap-3 lg:hidden">
-        {codeHeader}
+        {codeHeaderMobile}
         {pairInput}
         {peersList}
         {recentChips}
@@ -556,7 +633,7 @@ export function HomeScreen({
       {/* Desktop */}
       <div className="hidden grid-cols-[minmax(320px,400px)_minmax(0,1fr)] gap-6 lg:grid">
         <aside className="flex flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
-          {codeHeader}
+          {codeHeaderDesktop}
           {peersList}
           {recentChips}
           {pairInput}
