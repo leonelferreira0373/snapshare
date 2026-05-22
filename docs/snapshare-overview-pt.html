@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>SnapShare — Visão Geral do Serviço</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 20mm;
+    @bottom-center {
+      content: "SnapShare · Visão Geral · Página " counter(page) " de " counter(pages);
+      font-family: Georgia, serif;
+      font-size: 8.5pt;
+      color: #000;
+    }
+  }
+  :root { color-scheme: light; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .mono { font-family: "Courier New", monospace; }
+  .sans { font-family: Helvetica, Arial, sans-serif; }
+  h1, h2, h3, h4 { font-weight: 700; color: #000; margin: 0; }
+  h1 { font-size: 32pt; letter-spacing: -0.02em; }
+  h2 { font-size: 16pt; margin-top: 18pt; margin-bottom: 6pt; padding-bottom: 4pt; border-bottom: 2pt solid #000; letter-spacing: -0.01em; }
+  h3 { font-size: 12pt; margin-top: 12pt; margin-bottom: 4pt; text-transform: uppercase; letter-spacing: 0.05em; }
+  p { margin: 0 0 8pt 0; }
+  strong, b { font-weight: 700; }
+  em { font-style: italic; }
+  ul, ol { margin: 0 0 10pt 0; padding-left: 18pt; }
+  li { margin-bottom: 3pt; }
+  .cover { page-break-after: always; height: 250mm; display: flex; flex-direction: column; justify-content: space-between; padding-top: 20mm; }
+  .cover-mark { display: flex; align-items: center; justify-content: center; gap: 28pt; margin-bottom: 24pt; }
+  .cover-mark .dot { width: 22pt; height: 22pt; border-radius: 50%; background: #000; }
+  .cover-mark .arc { width: 80pt; height: 28pt; border-top: 4pt solid #000; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+  .cover h1 { text-align: center; font-size: 64pt; letter-spacing: -0.04em; }
+  .cover .lede { text-align: center; font-style: italic; font-size: 13pt; margin-top: 4pt; color: #000; }
+  .cover .meta { text-align: center; border-top: 1pt solid #000; padding-top: 12pt; font-family: Helvetica, Arial, sans-serif; font-size: 9pt; letter-spacing: 0.12em; text-transform: uppercase; }
+  .toc { list-style: none; padding-left: 0; margin-top: 16pt; }
+  .toc li { display: flex; justify-content: space-between; padding: 5pt 0; border-bottom: 0.5pt dotted #000; }
+  .toc li span:last-child { font-weight: 700; }
+  .callout { border-left: 3pt solid #000; padding: 6pt 12pt; margin: 10pt 0; background: #f5f5f5; }
+  .callout strong { display: block; margin-bottom: 4pt; text-transform: uppercase; letter-spacing: 0.06em; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; margin: 8pt 0 14pt 0; font-size: 9.5pt; }
+  th, td { text-align: left; padding: 5pt 8pt; border-bottom: 0.5pt solid #000; vertical-align: top; }
+  thead th { border-bottom: 1.5pt solid #000; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.06em; }
+  td:first-child { width: 30%; font-weight: 700; }
+  ol.steps { counter-reset: step; list-style: none; padding-left: 0; }
+  ol.steps li { counter-increment: step; padding-left: 28pt; position: relative; margin-bottom: 9pt; }
+  ol.steps li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 18pt; height: 18pt; border: 1.5pt solid #000; border-radius: 50%; text-align: center; line-height: 16pt; font-weight: 700; font-family: Helvetica, Arial, sans-serif; font-size: 9pt; }
+  pre.diagram { font-family: "Courier New", monospace; font-size: 8.5pt; line-height: 1.35; border: 1pt solid #000; padding: 8pt 10pt; margin: 6pt 0 14pt 0; white-space: pre; }
+  .sig-block { margin-top: 16pt; padding: 14pt; border: 1.5pt solid #000; }
+  .sig-block h3 { margin-top: 0; }
+  .page-break { page-break-before: always; }
+  hr.rule { border: 0; border-top: 1.5pt solid #000; margin: 14pt 0; }
+  .small { font-size: 8.5pt; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div>
+    <div class="cover-mark" aria-hidden="true">
+      <span class="dot"></span>
+      <span class="arc"></span>
+      <span class="dot"></span>
+    </div>
+    <h1>SNAPSHARE</h1>
+    <p class="lede">Dois dispositivos. Zero servidores.</p>
+  </div>
+
+  <div>
+    <p class="meta">
+      Visão Geral do Serviço &nbsp;·&nbsp; Versão 1.15 &nbsp;·&nbsp; Maio de 2026<br>
+      Por Leonel Ferreira &nbsp;·&nbsp; Luanda, Angola
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Índice</h2>
+  <ol class="toc">
+    <li><span>1. Sumário Executivo</span><span>3</span></li>
+    <li><span>2. Catálogo de Funcionalidades</span><span>3</span></li>
+    <li><span>3. Como Funciona</span><span>5</span></li>
+    <li><span>4. Privacidade e Segurança</span><span>6</span></li>
+    <li><span>5. Limitações e Avisos Honestos</span><span>7</span></li>
+    <li><span>6. Guia de Início Rápido</span><span>8</span></li>
+    <li><span>7. Especificações Técnicas</span><span>9</span></li>
+    <li><span>8. Aviso Legal e Licença</span><span>10</span></li>
+    <li><span>9. Sobre o Autor</span><span>10</span></li>
+  </ol>
+
+  <hr class="rule">
+
+  <p class="small"><em>
+    Este documento descreve o SnapShare tal como publicado em
+    <strong>https://snapshare-share.vercel.app</strong> à data de emissão. O código-fonte
+    está disponível em <strong>https://github.com/leonelferreira0373/snapshare</strong>.
+  </em></p>
+</section>
+
+<section class="page-break">
+  <h2>1. Sumário Executivo</h2>
+  <p>
+    <strong>O SnapShare é um serviço gratuito, baseado em navegador, de transferência
+    de ficheiros ponto-a-ponto.</strong> Dois dispositivos abrem o mesmo endereço; um
+    apresenta um código QR ou um código de seis caracteres; o outro digitaliza ou
+    digita-o; a ligação é estabelecida. Os ficheiros viajam então
+    <em>diretamente entre os dois dispositivos</em>, com cifragem ponto-a-ponto, sem
+    passar por nenhum servidor SnapShare.
+  </p>
+
+  <p>
+    Não há <strong>contas</strong>. Não há <strong>limite de carregamento</strong>.
+    Não há <strong>perda de qualidade</strong>. Não há <strong>custo recorrente</strong>
+    — nem para o operador nem para o utilizador. O serviço é alojado num plano
+    estático gratuito da Vercel, recorre ao broker público PeerJS para o breve
+    handshake inicial, e é no resto totalmente autónomo.
+  </p>
+
+  <p>
+    O produto é <strong>multi-dispositivo, multi-plataforma e multilingue</strong>
+    (português e inglês, com português como predefinição). Inclui modos claro e
+    escuro, instalação como Progressive Web App (PWA), arrastar-e-largar em
+    qualquer ponto do ecrã num desktop, leitura de QR dentro da app por câmara ou
+    captura de ecrã, captura automática da área de transferência (texto e
+    imagens), toque-para-copiar em texto recebido, ícones por tipo de ficheiro,
+    reenvio, cancelamento e desligar individual por dispositivo.
+  </p>
+
+  <div class="callout">
+    <strong>Pitch em uma frase</strong>
+    A forma mais rápida e mais privada de mover um ficheiro de um dispositivo
+    para outro, sem instalar nada, sem criar conta, e sem nenhum terceiro a
+    tocar nos bytes.
+  </div>
+</section>
+
+<section>
+  <h2>2. Catálogo de Funcionalidades</h2>
+
+  <h3>2.1 Emparelhamento</h3>
+  <table>
+    <thead><tr><th>Capacidade</th><th>Detalhe</th></tr></thead>
+    <tbody>
+      <tr><td>Código QR</td><td>Sempre presente no cabeçalho; toque para expandir até 220&nbsp;px. Codifica o URL ao vivo com o identificador local como parâmetro, para emparelhamento automático.</td></tr>
+      <tr><td>Código de seis caracteres</td><td>Persistente entre sessões (guardado em <span class="mono">localStorage</span>). Formato <span class="mono">ABC-XYZ</span>; auto-maiúsculas e auto-hífen ao escrever.</td></tr>
+      <tr><td>Copiar para clipboard</td><td>Cópia num toque do código formatado, com confirmação visual de 1,5 segundos.</td></tr>
+      <tr><td>Leitor QR dentro da app</td><td>Duas fontes: câmara do dispositivo (mobile) e captura de ecrã via <span class="mono">getDisplayMedia</span> (desktop). Descodifica num worker jsQR. Desliza da direita.</td></tr>
+      <tr><td>Topologia multi-dispositivo</td><td>Um dispositivo pode estar emparelhado com vários ao mesmo tempo. Ficheiros são difundidos em paralelo a todos os pares ligados.</td></tr>
+      <tr><td>Reconectar num toque</td><td>Os oito emparelhamentos mais recentes ficam memorizados. Cada um aparece como chip com botão único para retomar a ligação.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 Enviar e Receber</h3>
+  <table>
+    <thead><tr><th>Capacidade</th><th>Detalhe</th></tr></thead>
+    <tbody>
+      <tr><td>Origem dos ficheiros</td><td>Seletor do sistema, arrastar-e-largar para a drop zone, arrastar-e-largar em qualquer parte da página no desktop, ou colar (Ctrl+V / Cmd+V).</td></tr>
+      <tr><td>Múltiplos ficheiros</td><td>Cria uma linha por cada ficheiro no momento da seleção. Cada uma atualiza a sua percentagem em tempo real.</td></tr>
+      <tr><td>Progresso</td><td>Atualiza aproximadamente a cada 1% ou 64&nbsp;KB, o que for maior. Ambos os lados veem a barra a avançar.</td></tr>
+      <tr><td>Cancelar</td><td>Surge um <span class="mono">&#10005;</span> em linhas em curso. Qualquer das duas partes pode cancelar; a outra é notificada e limpa o buffer parcial.</td></tr>
+      <tr><td>Reenviar</td><td>Disponível no lado de quem enviou, depois de concluído. Redifunde o mesmo ficheiro a todos os pares atualmente ligados — incluindo os que se ligaram <em>depois</em> do envio original.</td></tr>
+      <tr><td>Guardar automaticamente</td><td>Ficheiros binários (imagens, vídeo, arquivos) acionam download automático. No Android caem em <span class="mono">/Download</span> e são indexados pela Galeria. No iOS Safari caem na app Ficheiros.</td></tr>
+      <tr><td>Toque-para-copiar em texto</td><td>Textos abaixo de 1&nbsp;MB não são descarregados automaticamente. A linha torna-se interativa e um toque copia o conteúdo para a área de transferência, com pré-visualização inline de duas linhas.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 Área de Transferência</h3>
+  <table>
+    <thead><tr><th>Capacidade</th><th>Detalhe</th></tr></thead>
+    <tbody>
+      <tr><td>Captura automática</td><td>Botão no cabeçalho (verde quando ligado). Lê a área de transferência sempre que a tab volta a ter foco. Conteúdo novo torna-se uma transferência.</td></tr>
+      <tr><td>Tipos suportados</td><td>Texto (UTF-8) e qualquer imagem que o browser exponha via <span class="mono">navigator.clipboard.read()</span> — PNG, JPEG, WebP, SVG, e semelhantes.</td></tr>
+      <tr><td>De-duplicação</td><td>Mantém em memória uma impressão digital (mime + tamanho + hash dos primeiros 256 bytes). Leituras idênticas são saltadas.</td></tr>
+      <tr><td>Colar global</td><td>Independentemente do toggle, Ctrl+V / Cmd+V em qualquer ponto da página (fora de campos de formulário) extrai e envia qualquer ficheiro do evento de paste.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 Qualidade-de-Vida</h3>
+  <table>
+    <thead><tr><th>Capacidade</th><th>Detalhe</th></tr></thead>
+    <tbody>
+      <tr><td>Modo claro e escuro</td><td>Toggle no pill flutuante inferior. O modo claro usa um creme morno (<span class="mono">#f3f1ec</span>) escolhido para não cansar a vista; cartões com sombra subtil.</td></tr>
+      <tr><td>Bilingue</td><td>Português (predefinição) e inglês. Todas as strings traduzidas. Persistido em <span class="mono">localStorage</span>.</td></tr>
+      <tr><td>Manter ecrã ligado</td><td>Toggle opcional segura uma Wake Lock enquanto emparelhado, para que a tab no telemóvel não seja suspensa entre transferências.</td></tr>
+      <tr><td>Ícones por tipo</td><td>Cerca de quarenta extensões mapeadas a ícones (áudio, vídeo, imagem, código, arquivo, folha de cálculo, documento, genérico).</td></tr>
+      <tr><td>Mostrar tudo / menos</td><td>O painel de transferências mostra por defeito as seis mais recentes; um toggle expande a lista.</td></tr>
+      <tr><td>Recolher tudo</td><td>Repõe estado de expansão visível e faz scroll para o topo.</td></tr>
+      <tr><td>Voltar ao topo</td><td>Uma seta flutuante surge após cerca de 400&nbsp;px de scroll vertical; faz scroll suave até ao topo.</td></tr>
+      <tr><td>Instalar PWA</td><td>Em browsers suportados, um botão no rodapé aciona o prompt nativo. Em iOS Safari, um popover explica o caminho Partilhar &rarr; Adicionar ao Ecrã Principal.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="page-break">
+  <h2>3. Como Funciona</h2>
+
+  <p>
+    O SnapShare é uma aplicação de página única em TypeScript e React, empacotada
+    com Vite, e publicada como deploy estático na Vercel. Toda a lógica em runtime
+    corre dentro do browser do utilizador; o backend SnapShare consiste em zero
+    servidores sob controlo do operador.
+  </p>
+
+  <h3>3.1 Estabelecimento da Ligação</h3>
+  <ol class="steps">
+    <li>
+      <strong>Carregamento da página.</strong> O browser regista um identificador de
+      peer único no broker público PeerJS por WebSocket. Os identificadores têm seis
+      caracteres alfanuméricos, persistidos em <span class="mono">localStorage</span>
+      para serem estáveis entre visitas.
+    </li>
+    <li>
+      <strong>Descoberta.</strong> O Dispositivo A apresenta um QR contendo o URL com
+      o seu identificador. O Dispositivo B abre o mesmo URL (digitalizando o QR com a
+      câmara do sistema operativo, ou escrevendo o código de seis caracteres).
+    </li>
+    <li>
+      <strong>Handshake.</strong> O Dispositivo B pede ao broker para ligar ao
+      identificador do Dispositivo A. O broker reencaminha a oferta/resposta WebRTC
+      entre os dois — alguns kilobytes no total. As candidaturas ICE são trocadas
+      através de servidores STUN públicos gratuitos (Google).
+    </li>
+    <li>
+      <strong>Canal de dados.</strong> Um <span class="mono">DataChannel</span> WebRTC
+      fiável abre diretamente entre os dois dispositivos. A partir deste momento o
+      broker fica de fora; os ficheiros viajam ponto-a-ponto.
+    </li>
+  </ol>
+
+  <pre class="diagram">    Dispositivo A                            Dispositivo B
+          |                                         |
+          |   1. Registar identificador (broker)    |
+          |&lt;---&gt;[Broker PeerJS]&lt;---&gt;                |
+          |                                         |
+          |   2. Leitura QR ou código manual        |
+          |                                         |
+          |   3. Oferta/Resposta (alguns KB)        |
+          |&lt;---&gt;[Broker PeerJS]&lt;---&gt;                |
+          |                                         |
+          |   4. Candidatos ICE (STUN, breve)       |
+          |&lt;---&gt;[Servidores STUN]&lt;---&gt;              |
+          |                                         |
+          |   5. DataChannel WebRTC aberto (DTLS)   |
+          |==========[ P2P DIRETO ]=================|
+          |     TODOS OS BYTES PASSAM AQUI          |
+  </pre>
+
+  <h3>3.2 Protocolo de Transferência</h3>
+  <p>
+    Uma transferência inicia com uma mensagem JSON <span class="mono">meta</span>
+    com um identificador gerado, o nome original do ficheiro, o tipo MIME declarado
+    e o tamanho em bytes. O emissor envia depois o ficheiro em pedaços binários de
+    dezasseis kilobytes. O <em>backpressure</em> é gerido pelo
+    <span class="mono">RTCDataChannel</span> subjacente: quando o
+    <span class="mono">bufferedAmount</span> ultrapassa 16&nbsp;MB, o ciclo aguarda
+    o evento <span class="mono">bufferedamountlow</span> antes de retomar. Uma
+    mensagem terminal <span class="mono">eof</span> fecha a transferência; o recetor
+    reagrupa um Blob e aciona um download automático (binário) ou ativa o
+    toque-para-copiar (texto).
+  </p>
+
+  <p>
+    Existe ainda uma mensagem <span class="mono">cancel</span> que permite a
+    qualquer um dos lados abortar uma transferência em curso de forma limpa.
+    A mensagem <span class="mono">hello</span> trocada no momento da ligação
+    transporta a plataforma do par, usada para o nome amigável que aparece na UI.
+  </p>
+
+  <h3>3.3 Onde Vive Cada Coisa</h3>
+  <table>
+    <thead><tr><th>Componente</th><th>Onde Mora</th><th>Custo</th></tr></thead>
+    <tbody>
+      <tr><td>Bundle SPA estático</td><td>Vercel (plano estático gratuito)</td><td>0&nbsp;€</td></tr>
+      <tr><td>Broker de sinalização</td><td>Broker público PeerJS</td><td>0&nbsp;€</td></tr>
+      <tr><td>Servidores STUN</td><td>STUN público Google</td><td>0&nbsp;€</td></tr>
+      <tr><td>Relay TURN</td><td>Não configurado</td><td>—</td></tr>
+      <tr><td>Armazenamento de ficheiros</td><td>Nenhum — bytes viajam P2P</td><td>—</td></tr>
+      <tr><td>Base de dados</td><td>Nenhuma</td><td>—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="page-break">
+  <h2>4. Privacidade e Segurança</h2>
+
+  <h3>4.1 O Que Nunca Sai dos Dois Dispositivos</h3>
+  <p>
+    O conteúdo de cada ficheiro transferido permanece entre o dispositivo emissor
+    e o recetor. Nunca é carregado para nenhum servidor, não passa por nenhum
+    bucket de cloud, não é registado, e não pode ser revisto pelo operador. Não há
+    backend que possa ser intimado judicialmente ou comprometido — porque
+    simplesmente não existe backend a ver o payload.
+  </p>
+
+  <h3>4.2 O Que Atravessa Brevemente o Broker</h3>
+  <p>
+    Para estabelecer a ligação ponto-a-ponto, duas pequenas mensagens JSON — a
+    oferta e a resposta WebRTC — têm de ser reencaminhadas entre os dois
+    dispositivos. Contêm impressões digitais criptográficas e candidatos de
+    endereço de rede. <em>Não</em> contêm conteúdo do utilizador. Depois da ligação
+    estar aberta, o broker deixa de estar envolvido.
+  </p>
+
+  <h3>4.3 Cifragem</h3>
+  <p>
+    As ligações <span class="mono">DataChannel</span> WebRTC são cifradas ao nível
+    do transporte através de <strong>DTLS 1.2 ou superior</strong>. As chaves de
+    sessão são negociadas diretamente entre os dois dispositivos. O SnapShare não
+    implementa uma cifragem adicional ao nível da aplicação; baseia-se no modelo
+    de segurança WebRTC padronizado e imposto pelo browser, que é por construção
+    ponto-a-ponto.
+  </p>
+
+  <h3>4.4 Retenção de Dados</h3>
+  <p>
+    O SnapShare não recolhe analytics, não coloca cookies de tracking, e não
+    armazena dados do utilizador. O único estado persistente vive no próprio
+    dispositivo, em <span class="mono">localStorage</span>, e limita-se a: idioma
+    escolhido, tema escolhido, identificador de peer persistente, lista de pares
+    recentes (até oito), estado do toggle de clipboard, e estado do toggle de
+    manter-ecrã-ligado. O utilizador pode limpar este estado a qualquer momento
+    através dos controlos normais do browser.
+  </p>
+
+  <h3>4.5 Código Aberto</h3>
+  <p>
+    O código-fonte completo está publicado sob a licença MIT em
+    <strong>github.com/leonelferreira0373/snapshare</strong>. A verificação
+    independente das afirmações desta secção é portanto possível sem ter de
+    confiar na palavra do operador.
+  </p>
+</section>
+
+<section>
+  <h2>5. Limitações e Avisos Honestos</h2>
+
+  <h3>5.1 Alcance de Rede</h3>
+  <p>
+    Dois dispositivos na mesma rede local ligam-se com 100% de fiabilidade. Em
+    redes diferentes, a taxa de sucesso ronda os <strong>90 a 95%</strong>,
+    dependendo do tipo de NAT em cada ponta. Os casos restantes — normalmente NAT
+    simétrico em CGNAT operadora combinado com firewalls corporativas — exigem um
+    relay TURN, que o SnapShare não provisiona (largura de banda paga). Quando uma
+    ligação não pode ser estabelecida, o dispositivo mostra erro claro em vez de
+    tentar em silêncio.
+  </p>
+
+  <h3>5.2 Comportamento em Background no Mobile</h3>
+  <p>
+    Browsers móveis suspendem o motor JavaScript e fecham ligações WebRTC quando
+    uma tab perde o estado de foreground. Não existe mecanismo portável do lado do
+    browser para manter um peer vivo em verdadeiro background. O SnapShare oferece
+    o toggle <em>Manter ecrã ligado</em>, que segura uma Wake Lock e mantém a tab
+    considerada visível enquanto o ecrã estiver aceso; este é o máximo que se
+    consegue sem um wrapper nativo.
+  </p>
+
+  <h3>5.3 Tamanho de Ficheiro</h3>
+  <p>
+    Ficheiros recebidos são montados em memória do browser antes de serem
+    guardados. Ficheiros acima de aproximadamente 500&nbsp;MB são fiáveis em
+    desktops; em mobile, pressão de memória pode matar a tab. Um caminho de
+    streaming-para-disco via File System Access API está no roadmap mas exige
+    browsers de família Chromium.
+  </p>
+
+  <h3>5.4 Alcance do Clipboard</h3>
+  <p>
+    Os browsers expõem <strong>imagens e texto</strong> da área de transferência
+    do sistema de forma fiável. Não expõem ficheiros arbitrários copiados a
+    partir do gestor de ficheiros do sistema operativo. Um vídeo ou documento
+    copiado do Explorador do Windows para o clipboard não pode ser lido por uma
+    página web; apenas o nome aparece. Para esses casos os utilizadores devem
+    recorrer a arrastar-e-largar ou ao botão <em>Adicionar ficheiros</em>.
+  </p>
+
+  <h3>5.5 Caminho de Download no iOS</h3>
+  <p>
+    No iOS Safari, os downloads caem na app Ficheiros do sistema em vez da
+    biblioteca Fotos. Os utilizadores podem guardar imagens recebidas em Fotos
+    manualmente a partir de Ficheiros. É uma limitação da plataforma.
+  </p>
+</section>
+
+<section class="page-break">
+  <h2>6. Guia de Início Rápido</h2>
+
+  <ol class="steps">
+    <li>
+      <strong>Abre o serviço.</strong> Ambos os dispositivos visitam
+      <strong>https://snapshare-share.vercel.app</strong>. A primeira visita num
+      dispositivo gera e memoriza um código de seis caracteres.
+    </li>
+    <li>
+      <strong>Emparelha.</strong> No Dispositivo A, expande o QR (chevron ao lado
+      do código). No Dispositivo B, lê-o com a câmara do sistema ou com o leitor da
+      app. Em alternativa, escreve o código de seis caracteres do A no campo do B
+      — em maiúsculas e com hífen a serem aplicados automaticamente.
+    </li>
+    <li>
+      <strong>Confirma.</strong> Ambos mostram <em>Dispositivos ligados (1)</em>
+      com ponto verde ao lado do nome do par.
+    </li>
+    <li>
+      <strong>Envia.</strong> Arrasta um ficheiro para a drop zone (ou para
+      qualquer ponto da página no desktop), toca em <em>Adicionar ficheiros</em>,
+      cola com Ctrl+V, ou — se o toggle de clipboard estiver ligado — simplesmente
+      copia noutra app e volta à tab do SnapShare.
+    </li>
+    <li>
+      <strong>Recebe.</strong> O outro lado mostra a linha com barra de progresso
+      ao vivo. Quando termina, o ficheiro descarrega automaticamente; para texto,
+      a linha torna-se toque-para-copiar.
+    </li>
+    <li>
+      <strong>Reenvia ou cancela.</strong> Linhas concluídas do lado do emissor
+      oferecem <em>Reenviar</em>. Linhas em curso oferecem a cruz de cancelar.
+      Qualquer um dos lados pode cancelar; ambos observam o cancelamento de
+      forma limpa.
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>7. Especificações Técnicas</h2>
+
+  <h3>7.1 Stack</h3>
+  <table>
+    <tbody>
+      <tr><td>Linguagem</td><td>TypeScript 5.6</td></tr>
+      <tr><td>Framework de UI</td><td>React 18 com hooks</td></tr>
+      <tr><td>Bundler</td><td>Vite 5.4</td></tr>
+      <tr><td>Estilos</td><td>Tailwind CSS 3.4 (modo escuro por classe)</td></tr>
+      <tr><td>Iconografia</td><td>Lucide</td></tr>
+      <tr><td>Biblioteca P2P</td><td>PeerJS 1.5</td></tr>
+      <tr><td>Geração de QR</td><td>qrcode.react 4.1</td></tr>
+      <tr><td>Leitura de QR</td><td>qr-scanner (web worker, baseado em jsQR)</td></tr>
+      <tr><td>Alojamento</td><td>Vercel (estático, plano gratuito)</td></tr>
+      <tr><td>Tamanho do bundle</td><td>~100&nbsp;KB JS gzip, ~6&nbsp;KB CSS gzip</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.2 Suporte de Browser</h3>
+  <table>
+    <thead><tr><th>Browser</th><th>Estado</th></tr></thead>
+    <tbody>
+      <tr><td>Chrome / Edge (desktop)</td><td>Suporte total, incluindo <span class="mono">clipboard.read()</span> para imagens</td></tr>
+      <tr><td>Chrome (Android)</td><td>Suporte total, incluindo Wake Lock e instalação PWA</td></tr>
+      <tr><td>Safari (macOS)</td><td>Transferências OK; leitura de imagens do clipboard varia por versão</td></tr>
+      <tr><td>Safari (iOS 16.4+)</td><td>Transferências e Wake Lock suportadas; downloads vão para Ficheiros</td></tr>
+      <tr><td>Firefox</td><td>Transferências OK; alguns tipos ricos de clipboard limitados</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.3 Chunks de Transferência</h3>
+  <table>
+    <tbody>
+      <tr><td>Tamanho do chunk</td><td>16.384 bytes (16&nbsp;KB)</td></tr>
+      <tr><td>High water mark</td><td>16&nbsp;MB de bufferedAmount</td></tr>
+      <tr><td>Low water mark</td><td>1&nbsp;MB de bufferedAmount</td></tr>
+      <tr><td>Reporte de progresso</td><td>Cada 1% ou 64&nbsp;KB, o que for maior</td></tr>
+      <tr><td>Limite de texto para tap-to-copy</td><td>1&nbsp;MB</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="page-break">
+  <h2>8. Aviso Legal e Licença</h2>
+
+  <h3>8.1 Licença</h3>
+  <p>
+    O SnapShare é distribuído sob a <strong>Licença MIT</strong>. Em termos
+    simples: qualquer pessoa pode usar, copiar, modificar, fundir, publicar,
+    distribuir, sublicenciar ou vender cópias do software, desde que o aviso de
+    copyright e este aviso de licença surjam em todas as cópias ou porções
+    substanciais do software.
+  </p>
+
+  <h3>8.2 Renúncia de Garantia</h3>
+  <p>
+    <strong>O software é fornecido "tal como está", sem garantia de qualquer
+    tipo, expressa ou implícita,</strong> incluindo mas não limitada às
+    garantias de comercialização, aptidão para uma finalidade específica e
+    não-infração. Em nenhuma circunstância o autor ou os titulares de copyright
+    serão responsáveis por qualquer reclamação, danos ou outra responsabilidade,
+    seja em ação contratual, delitual ou outra, decorrente de, fora ou em
+    ligação com o software ou o uso ou outros tratos no software.
+  </p>
+
+  <h3>8.3 Responsabilidade pelo Conteúdo</h3>
+  <p>
+    O SnapShare não armazena, não medeia nem modera conteúdo transferido entre
+    dispositivos de utilizadores. Os utilizadores são os únicos responsáveis pela
+    legalidade e adequação dos ficheiros que decidam enviar. O operador não tem
+    meios técnicos de monitorizar, intercetar, reter ou recuperar conteúdo
+    transferido.
+  </p>
+
+  <h3>8.4 Serviços de Terceiros</h3>
+  <p>
+    O SnapShare apoia-se no broker público PeerJS para sinalização da ligação e
+    nos servidores STUN públicos da Google para descoberta de NAT. O uso destes
+    serviços é regido pelos respetivos termos. O operador do SnapShare não tem
+    relação contratual com estes fornecedores e não oferece qualquer acordo de
+    nível de serviço em seu nome.
+  </p>
+
+  <h3>8.5 Conformidade</h3>
+  <p>
+    Como o SnapShare não recolhe, processa ou armazena quaisquer dados pessoais
+    em nome de utilizadores, não surge qualquer relação controlador-subcontratante
+    ao abrigo do RGPD no uso padrão. Os únicos dados existentes estão no próprio
+    dispositivo do utilizador, em <span class="mono">localStorage</span>, sob o
+    seu controlo exclusivo.
+  </p>
+</section>
+
+<section>
+  <h2>9. Sobre o Autor</h2>
+
+  <div class="sig-block">
+    <h3>Leonel Ferreira</h3>
+    <p>
+      Engenheiro de software e operador sediado em <strong>Luanda, Angola</strong>.
+      Fundador de trabalho independente em produtos que abrangem comércio
+      eletrónico (<em>Geosstore</em>), mobilidade urbana (<em>BAZA</em>),
+      ferramentas gráficas (<em>Klip</em>), produtividade (<em>Lume</em>),
+      e agora transferência de ficheiros ponto-a-ponto (<em>SnapShare</em>).
+    </p>
+
+    <p>
+      <strong>Portefólio &nbsp;·&nbsp;</strong>
+      <span class="mono">leonelferreira.vercel.app</span>
+    </p>
+    <p>
+      <strong>Código-fonte &nbsp;·&nbsp;</strong>
+      <span class="mono">github.com/leonelferreira0373/snapshare</span>
+    </p>
+    <p>
+      <strong>Contacto &nbsp;·&nbsp;</strong>
+      <span class="mono">leonelferreira0373@gmail.com</span>
+    </p>
+
+    <hr class="rule">
+
+    <p class="small">
+      Este documento e o software subjacente foram escritos por Leonel Ferreira.
+      O SnapShare é oferecido gratuitamente ao público no interesse de uma forma
+      mais privada e sem atrito de mover ficheiros entre dispositivos. Reportes
+      de bugs, pedidos de funcionalidades e contribuições são bem-vindos através
+      do repositório GitHub acima.
+    </p>
+  </div>
+
+  <p class="small" style="text-align: center; margin-top: 24pt;">
+    &mdash; FIM DO DOCUMENTO &mdash;
+  </p>
+</section>
+
+</body>
+</html>

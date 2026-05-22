@@ -1,4 +1,4 @@
-import { Github, ExternalLink, ShieldCheck } from 'lucide-react'
+import { Github, ExternalLink, ShieldCheck, FileDown } from 'lucide-react'
 import { useT } from '../lib/i18n'
 import { InstallButton } from './InstallButton'
 
@@ -6,7 +6,7 @@ export function Footer() {
   const { t } = useT()
   return (
     <footer className="mx-auto mt-10 w-full max-w-6xl border-t border-zinc-200 px-4 pb-24 pt-6 text-xs text-zinc-600 dark:border-neutral-900 dark:text-neutral-500 lg:px-6 lg:pb-12">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-6">
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-semibold text-zinc-900 dark:text-neutral-300">SnapShare</p>
           <p className="leading-relaxed">{t('footer_tagline')}</p>
@@ -18,6 +18,27 @@ export function Footer() {
           </p>
           <p className="leading-relaxed">{t('privacy_body')}</p>
           <p className="leading-relaxed text-zinc-400 dark:text-neutral-600">{t('privacy_disclaimer')}</p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-zinc-700 dark:text-neutral-400">
+            <FileDown className="h-3 w-3" /> {t('documents')}
+          </p>
+          <p className="text-zinc-500 dark:text-neutral-500">{t('doc_overview')}</p>
+          <a
+            href="/docs/SnapShare-Overview-PT.pdf"
+            download
+            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-[11px] text-zinc-700 shadow-sm hover:border-zinc-300 hover:text-black dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-300 dark:shadow-none dark:hover:border-neutral-700 dark:hover:text-white"
+          >
+            <FileDown className="h-3 w-3" /> {t('download_pdf_pt')}
+          </a>
+          <a
+            href="/docs/SnapShare-Overview-EN.pdf"
+            download
+            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-[11px] text-zinc-700 shadow-sm hover:border-zinc-300 hover:text-black dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-300 dark:shadow-none dark:hover:border-neutral-700 dark:hover:text-white"
+          >
+            <FileDown className="h-3 w-3" /> {t('download_pdf_en')}
+          </a>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -55,7 +76,7 @@ export function Footer() {
 
       <div className="mt-6 flex flex-col items-start justify-between gap-2 border-t border-zinc-200 pt-4 text-[11px] text-zinc-400 dark:border-neutral-900 dark:text-neutral-600 lg:flex-row lg:items-center">
         <p>© {new Date().getFullYear()} SnapShare · MIT License</p>
-        <p>{t('made_in')} · v1.9</p>
+        <p>{t('made_in')} · v1.15</p>
       </div>
     </footer>
   )

@@ -96,6 +96,10 @@ const pt: Dict = {
   cancel: 'Cancelar',
   cancelled: 'Cancelado',
   failed: 'Falhou',
+  documents: 'Documentos',
+  doc_overview: 'Visão Geral do Serviço',
+  download_pdf_pt: 'Descarregar PDF · Português',
+  download_pdf_en: 'Descarregar PDF · Inglês',
 }
 
 const en: Dict = {
@@ -178,6 +182,10 @@ const en: Dict = {
   cancel: 'Cancel',
   cancelled: 'Cancelled',
   failed: 'Failed',
+  documents: 'Documents',
+  doc_overview: 'Service Overview',
+  download_pdf_pt: 'Download PDF · Portuguese',
+  download_pdf_en: 'Download PDF · English',
 }
 
 export const dictionaries: Record<Lang, Dict> = { pt, en }

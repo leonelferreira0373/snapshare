@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SnapShare — Service Overview</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 20mm;
+    @bottom-center {
+      content: "SnapShare · Service Overview · Page " counter(page) " of " counter(pages);
+      font-family: Georgia, serif;
+      font-size: 8.5pt;
+      color: #000;
+    }
+  }
+  :root { color-scheme: light; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .mono { font-family: "Courier New", monospace; }
+  .sans { font-family: Helvetica, Arial, sans-serif; }
+
+  h1, h2, h3, h4 { font-weight: 700; color: #000; margin: 0; }
+  h1 { font-size: 32pt; letter-spacing: -0.02em; }
+  h2 {
+    font-size: 16pt;
+    margin-top: 18pt;
+    margin-bottom: 6pt;
+    padding-bottom: 4pt;
+    border-bottom: 2pt solid #000;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 12pt;
+    margin-top: 12pt;
+    margin-bottom: 4pt;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  p { margin: 0 0 8pt 0; }
+  strong, b { font-weight: 700; }
+  em { font-style: italic; }
+
+  ul, ol { margin: 0 0 10pt 0; padding-left: 18pt; }
+  li { margin-bottom: 3pt; }
+
+  /* Cover */
+  .cover {
+    page-break-after: always;
+    height: 250mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-top: 20mm;
+  }
+  .cover-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28pt;
+    margin-bottom: 24pt;
+  }
+  .cover-mark .dot {
+    width: 22pt;
+    height: 22pt;
+    border-radius: 50%;
+    background: #000;
+  }
+  .cover-mark .arc {
+    width: 80pt;
+    height: 28pt;
+    border-top: 4pt solid #000;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+  .cover h1 { text-align: center; font-size: 64pt; letter-spacing: -0.04em; }
+  .cover .lede {
+    text-align: center;
+    font-style: italic;
+    font-size: 13pt;
+    margin-top: 4pt;
+    color: #000;
+  }
+  .cover .meta {
+    text-align: center;
+    border-top: 1pt solid #000;
+    padding-top: 12pt;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Table of contents */
+  .toc {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 16pt;
+  }
+  .toc li {
+    display: flex;
+    justify-content: space-between;
+    padding: 5pt 0;
+    border-bottom: 0.5pt dotted #000;
+  }
+  .toc li span:last-child { font-weight: 700; }
+
+  /* Callouts */
+  .callout {
+    border-left: 3pt solid #000;
+    padding: 6pt 12pt;
+    margin: 10pt 0;
+    background: #f5f5f5;
+  }
+  .callout strong { display: block; margin-bottom: 4pt; text-transform: uppercase; letter-spacing: 0.06em; font-size: 9pt; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8pt 0 14pt 0;
+    font-size: 9.5pt;
+  }
+  th, td {
+    text-align: left;
+    padding: 5pt 8pt;
+    border-bottom: 0.5pt solid #000;
+    vertical-align: top;
+  }
+  thead th {
+    border-bottom: 1.5pt solid #000;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  td:first-child { width: 30%; font-weight: 700; }
+
+  /* Numbered list (steps) */
+  ol.steps { counter-reset: step; list-style: none; padding-left: 0; }
+  ol.steps li {
+    counter-increment: step;
+    padding-left: 28pt;
+    position: relative;
+    margin-bottom: 9pt;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 0;
+    width: 18pt; height: 18pt;
+    border: 1.5pt solid #000;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16pt;
+    font-weight: 700;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+  }
+
+  /* ASCII diagram */
+  pre.diagram {
+    font-family: "Courier New", monospace;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    border: 1pt solid #000;
+    padding: 8pt 10pt;
+    margin: 6pt 0 14pt 0;
+    white-space: pre;
+  }
+
+  /* Footer / sig block */
+  .sig-block {
+    margin-top: 16pt;
+    padding: 14pt;
+    border: 1.5pt solid #000;
+  }
+  .sig-block h3 { margin-top: 0; }
+
+  /* Page break helpers */
+  .page-break { page-break-before: always; }
+  .keep-together { page-break-inside: avoid; }
+
+  /* Print-only typographic flourishes */
+  hr.rule {
+    border: 0;
+    border-top: 1.5pt solid #000;
+    margin: 14pt 0;
+  }
+  .small { font-size: 8.5pt; }
+  .tag {
+    display: inline-block;
+    border: 0.75pt solid #000;
+    padding: 1pt 6pt;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-right: 4pt;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== COVER ===================== -->
+<section class="cover">
+  <div>
+    <div class="cover-mark" aria-hidden="true">
+      <span class="dot"></span>
+      <span class="arc"></span>
+      <span class="dot"></span>
+    </div>
+    <h1>SNAPSHARE</h1>
+    <p class="lede">Two devices. Zero servers.</p>
+  </div>
+
+  <div>
+    <p class="meta">
+      Service Overview &nbsp;·&nbsp; Version 1.15 &nbsp;·&nbsp; May 2026<br>
+      Authored by Leonel Ferreira &nbsp;·&nbsp; Luanda, Angola
+    </p>
+  </div>
+</section>
+
+<!-- ===================== TOC ===================== -->
+<section>
+  <h2>Contents</h2>
+  <ol class="toc">
+    <li><span>1. Executive Summary</span><span>3</span></li>
+    <li><span>2. Feature Catalogue</span><span>3</span></li>
+    <li><span>3. How It Works</span><span>5</span></li>
+    <li><span>4. Privacy &amp; Security</span><span>6</span></li>
+    <li><span>5. Limitations &amp; Honest Caveats</span><span>7</span></li>
+    <li><span>6. Quick Start Guide</span><span>8</span></li>
+    <li><span>7. Technical Specifications</span><span>9</span></li>
+    <li><span>8. Legal Notice &amp; License</span><span>10</span></li>
+    <li><span>9. About the Author</span><span>10</span></li>
+  </ol>
+
+  <hr class="rule">
+
+  <p class="small"><em>
+    This document describes SnapShare as deployed at
+    <strong>https://snapshare-share.vercel.app</strong> on the date of issue. The
+    underlying source code is open and tracked at
+    <strong>https://github.com/leonelferreira0373/snapshare</strong>.
+  </em></p>
+</section>
+
+<!-- ===================== 1. EXEC SUMMARY ===================== -->
+<section class="page-break">
+  <h2>1. Executive Summary</h2>
+  <p>
+    <strong>SnapShare is a free, browser-based, peer-to-peer file transfer service.</strong>
+    Two devices open the same URL; one shows a QR code or a six-character pairing
+    code; the other scans or types it; the connection is established. Files then
+    flow <em>directly between the two devices</em>, encrypted end-to-end, without
+    ever passing through a SnapShare server.
+  </p>
+
+  <p>
+    There are <strong>no accounts</strong>. There is <strong>no upload limit</strong>.
+    There is <strong>no quality loss</strong>. There is <strong>no recurring cost</strong>
+    — for the operator or for the user. The service is hosted on a free Vercel
+    static plan, relies on the public PeerJS signaling broker for the brief
+    handshake, and is otherwise fully autonomous.
+  </p>
+
+  <p>
+    The product is <strong>multi-device, multi-platform, and multi-language</strong>
+    (Portuguese and English, with Portuguese as the default). It includes
+    light and dark theming, an installable Progressive Web App (PWA), drag-and-drop
+    anywhere on a desktop screen, in-app QR scanning via camera or screen capture,
+    automatic clipboard capture (text and images), tap-to-copy on received text
+    payloads, file-type-aware iconography, resend, cancel, and per-peer disconnect.
+  </p>
+
+  <div class="callout">
+    <strong>One-sentence pitch</strong>
+    The fastest, most private way to move a file from one device to another, with
+    nothing installed, no account created, and no third party touching the bytes.
+  </div>
+</section>
+
+<!-- ===================== 2. FEATURES ===================== -->
+<section>
+  <h2>2. Feature Catalogue</h2>
+
+  <h3>2.1 Pairing</h3>
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>QR code</td><td>Always rendered in the header; tap to expand to a 220&nbsp;px canvas. Encodes the live URL with the local peer identifier as a query parameter for instant auto-pairing.</td></tr>
+      <tr><td>Six-character code</td><td>Persistent across browser sessions (stored in <span class="mono">localStorage</span>). Formatted as <span class="mono">ABC-XYZ</span>; auto-uppercase, auto-hyphen as the user types on the other device.</td></tr>
+      <tr><td>Copy to clipboard</td><td>One-tap copy of the formatted code with a 1.5-second confirmation state.</td></tr>
+      <tr><td>In-app QR scanner</td><td>Two sources: device camera (mobile) and screen-capture via <span class="mono">getDisplayMedia</span> (desktop). Decodes through the jsQR worker bundled at build time. Slides in from the right.</td></tr>
+      <tr><td>Multi-device topology</td><td>One device may pair with many others simultaneously. Files broadcast in parallel to every open peer.</td></tr>
+      <tr><td>One-tap reconnect</td><td>The most recent eight pairs are remembered. Each appears as a chip with a single button to resume the connection.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 Sending &amp; Receiving</h3>
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>File source</td><td>System file picker, drag-and-drop into the drop zone, drag-and-drop anywhere on the page (desktop full-screen detection), or paste from clipboard (Ctrl+V / Cmd+V).</td></tr>
+      <tr><td>Multi-file</td><td>Pre-creates a row per file at the moment of selection. Each row updates its own progress percentage in real time.</td></tr>
+      <tr><td>Progress feedback</td><td>Updates approximately every one percent or sixty-four kilobytes, whichever is larger. Both sides see the bar advance.</td></tr>
+      <tr><td>Cancel</td><td>An <span class="mono">&#10005;</span> button appears on any in-progress row. Either side may cancel; the other side is notified and tears down its partial buffer.</td></tr>
+      <tr><td>Resend</td><td>Available on the sender's side once a transfer is complete. Re-broadcasts the same file to every currently paired peer — including those that joined <em>after</em> the original send.</td></tr>
+      <tr><td>Auto-save on receive</td><td>Binary payloads (images, video, archives) trigger an automatic download. On Android they land in <span class="mono">/Download</span> and are indexed by Gallery. On iOS Safari they land in the Files app.</td></tr>
+      <tr><td>Tap-to-copy on text</td><td>Text payloads under one megabyte are not auto-downloaded. The row becomes interactive and a tap copies the full content back to the system clipboard, with inline two-line preview.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 Clipboard</h3>
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Auto-capture toggle</td><td>A clipboard button in the header (emerald when on). Captures the system clipboard whenever the SnapShare tab regains focus. New content becomes a transfer.</td></tr>
+      <tr><td>Supported types</td><td>Text (UTF-8) and any image type the browser exposes through <span class="mono">navigator.clipboard.read()</span> — PNG, JPEG, WebP, SVG, and similar.</td></tr>
+      <tr><td>Deduplication</td><td>A fingerprint of mime type, byte length, and the first 256 bytes is kept in memory. Identical re-reads are skipped.</td></tr>
+      <tr><td>Global paste</td><td>Independently of the toggle, Ctrl+V or Cmd+V anywhere on the page (outside form fields) extracts any file payloads and ships them.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 Quality-of-life</h3>
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>Detail</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Light &amp; dark theme</td><td>Toggle in the bottom-centre floating pill. Light mode uses a warm cream surface (<span class="mono">#f3f1ec</span>) chosen to reduce eye strain; cards lift with a subtle shadow.</td></tr>
+      <tr><td>Bilingual</td><td>Portuguese (default) and English. All UI strings are translated. Choice persists in <span class="mono">localStorage</span>.</td></tr>
+      <tr><td>Keep screen awake</td><td>Opt-in toggle holds a screen Wake Lock while paired, so a mobile tab is not suspended between transfers. Re-acquires on tab visibility change.</td></tr>
+      <tr><td>File-type icons</td><td>Around forty extensions mapped to representative icons (audio, video, image, code, archive, spreadsheet, document, generic).</td></tr>
+      <tr><td>Show all / show less</td><td>The transfers panel shows the six most recent rows by default; a toggle expands the full list.</td></tr>
+      <tr><td>Collapse all</td><td>Resets the visible expansion state and scrolls the page to the top.</td></tr>
+      <tr><td>Back to top</td><td>A floating arrow appears after roughly 400 pixels of vertical scroll; smooth-scrolls to the top.</td></tr>
+      <tr><td>PWA install</td><td>On supported browsers a footer button triggers the native install prompt. On iOS Safari an informational popover explains the Share &rarr; Add to Home Screen path. A standalone-mode badge indicates when the app is already installed.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 3. HOW IT WORKS ===================== -->
+<section class="page-break">
+  <h2>3. How It Works</h2>
+
+  <p>
+    SnapShare is a single-page application written in TypeScript and React,
+    bundled with Vite, and hosted as a fully static deployment on Vercel. All
+    runtime logic executes inside the user's browser; the SnapShare backend
+    consists of zero servers under operator control.
+  </p>
+
+  <h3>3.1 Connection establishment</h3>
+  <ol class="steps">
+    <li>
+      <strong>Page load.</strong> The browser registers a unique peer identifier with
+      the PeerJS public broker over a brief WebSocket handshake. Identifiers are
+      six alphanumeric characters, persisted in <span class="mono">localStorage</span>
+      so they remain stable across visits.
+    </li>
+    <li>
+      <strong>Discovery.</strong> Device A displays a QR code containing the URL with
+      its peer identifier. Device B opens the same URL (typically by scanning the QR
+      with the OS camera, or by typing the six-character code).
+    </li>
+    <li>
+      <strong>Handshake.</strong> Device B asks the broker to connect to Device A's
+      identifier. The broker relays the WebRTC offer/answer between the two devices —
+      a few kilobytes total. ICE candidates are exchanged using free public STUN
+      servers (Google).
+    </li>
+    <li>
+      <strong>Data channel.</strong> A reliable WebRTC <span class="mono">DataChannel</span>
+      opens directly between the two devices. From this point onwards, the broker is
+      idle; files flow peer-to-peer.
+    </li>
+  </ol>
+
+  <pre class="diagram">       Device A                                  Device B
+          |                                         |
+          |   1. Register identifier (broker)       |
+          |&lt;---&gt;[PeerJS Broker]&lt;---&gt;                |
+          |                                         |
+          |   2. QR scan or code entry              |
+          |                                         |
+          |   3. Offer/Answer (a few KB, broker)    |
+          |&lt;---&gt;[PeerJS Broker]&lt;---&gt;                |
+          |                                         |
+          |   4. ICE candidates (STUN, brief)       |
+          |&lt;---&gt;[STUN servers]&lt;---&gt;                 |
+          |                                         |
+          |   5. WebRTC DataChannel open (DTLS)     |
+          |==========[ DIRECT P2P ]=================|
+          |       ALL FILE BYTES FLOW HERE          |
+  </pre>
+
+  <h3>3.2 File transfer protocol</h3>
+  <p>
+    A file transfer is initiated by sending a <span class="mono">meta</span> JSON
+    message containing a generated transfer identifier, the original filename, the
+    declared MIME type, and the total byte length. The sender then streams the
+    file in sixteen-kilobyte binary chunks. Backpressure is governed by the
+    underlying <span class="mono">RTCDataChannel</span>: when the buffered amount
+    exceeds sixteen megabytes the loop awaits the
+    <span class="mono">bufferedamountlow</span> event before resuming. A terminating
+    <span class="mono">eof</span> message closes the transfer; the receiver
+    reassembles a Blob and either triggers an automatic download (binary) or
+    activates tap-to-copy (text).
+  </p>
+
+  <p>
+    A complementary <span class="mono">cancel</span> message exists for either
+    side to abort an in-flight transfer cleanly. A <span class="mono">hello</span>
+    message exchanged on connection open carries platform metadata used for
+    the friendly device labels.
+  </p>
+
+  <h3>3.3 What lives where</h3>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Hosted by</th><th>Cost</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Static SPA bundle</td><td>Vercel (free static plan)</td><td>$0</td></tr>
+      <tr><td>Signaling broker</td><td>PeerJS public broker</td><td>$0</td></tr>
+      <tr><td>STUN servers</td><td>Google public STUN</td><td>$0</td></tr>
+      <tr><td>TURN relay</td><td>Not configured</td><td>—</td></tr>
+      <tr><td>File storage</td><td>None — bytes flow peer-to-peer</td><td>—</td></tr>
+      <tr><td>Database</td><td>None</td><td>—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 4. PRIVACY & SECURITY ===================== -->
+<section class="page-break">
+  <h2>4. Privacy &amp; Security</h2>
+
+  <h3>4.1 What never leaves the two devices</h3>
+  <p>
+    The contents of every file you transfer remain between the sending device and
+    the receiving device. They are not uploaded to any server, do not pass through
+    any cloud storage bucket, are never logged, and cannot be reviewed by the
+    operator. There is no backend that could be subpoenaed or breached, because
+    there is no backend that ever sees the payload.
+  </p>
+
+  <h3>4.2 What does briefly traverse the broker</h3>
+  <p>
+    To establish the peer-to-peer link, two short JSON messages — the WebRTC
+    offer and answer — must be relayed between the two devices. These contain
+    cryptographic fingerprints and network address candidates. They do
+    <em>not</em> contain any user content. Once the link is open, the broker is
+    no longer in the loop.
+  </p>
+
+  <h3>4.3 Encryption</h3>
+  <p>
+    WebRTC <span class="mono">DataChannel</span> connections are encrypted at the
+    transport layer using <strong>DTLS 1.2 or later</strong>. The session keys are
+    negotiated directly between the two devices. SnapShare does not implement an
+    additional application-level cipher; it relies on the standardised, browser-
+    enforced WebRTC security model, which is end-to-end by construction.
+  </p>
+
+  <h3>4.4 Data retention</h3>
+  <p>
+    SnapShare collects no analytics, sets no first-party tracking cookies, and
+    does not store user data. The only persistent state is on the user's own
+    device, in <span class="mono">localStorage</span>, and is limited to: the
+    selected language, the chosen theme, the persistent peer identifier, the
+    list of recently paired devices (up to eight), the clipboard-capture toggle
+    state, and the keep-awake toggle state. The user may clear this state at
+    any time through normal browser controls.
+  </p>
+
+  <h3>4.5 Open source</h3>
+  <p>
+    The complete source code is published under the MIT License at
+    <strong>github.com/leonelferreira0373/snapshare</strong>. Independent
+    verification of the claims in this section is therefore possible without
+    relying on the operator's word.
+  </p>
+</section>
+
+<!-- ===================== 5. LIMITATIONS ===================== -->
+<section>
+  <h2>5. Limitations &amp; Honest Caveats</h2>
+
+  <h3>5.1 Network reach</h3>
+  <p>
+    Two devices on the same local network connect with one hundred percent
+    reliability. Across different networks the success rate is roughly
+    <strong>ninety to ninety-five percent</strong>, dependent on the NAT type at
+    each end. The remaining cases — typically carrier-grade symmetric NAT
+    combined with restrictive corporate firewalls — require a TURN relay, which
+    SnapShare does not currently provision (paid bandwidth). When a connection
+    cannot be established, the device shows a clear error rather than retrying
+    silently.
+  </p>
+
+  <h3>5.2 Mobile background behaviour</h3>
+  <p>
+    Mobile browsers suspend the JavaScript engine and tear down WebRTC
+    connections when a tab loses foreground status. There is no portable
+    browser-side mechanism to keep a peer connection alive in true background.
+    SnapShare offers the <em>Keep screen awake</em> toggle, which holds a
+    screen Wake Lock and keeps the tab considered visible while the screen is
+    on; this is the maximum that can be achieved without a native application
+    wrapper.
+  </p>
+
+  <h3>5.3 File size</h3>
+  <p>
+    Received files are assembled in browser memory before being saved. Files
+    above approximately five hundred megabytes are reliable on desktop browsers;
+    on mobile, memory pressure may cause the tab to be killed. A streaming
+    save-to-disk path using the File System Access API is on the roadmap but
+    requires Chromium-class browsers.
+  </p>
+
+  <h3>5.4 Clipboard reach</h3>
+  <p>
+    Web browsers expose <strong>images and text</strong> from the system
+    clipboard reliably. They do <strong>not</strong> expose arbitrary file types
+    copied from the OS file manager. A video or document copied from Windows
+    Explorer into the clipboard cannot be read by a web page; only its filename
+    appears. For such payloads users should rely on drag-and-drop or the
+    <em>Add files</em> button.
+  </p>
+
+  <h3>5.5 iOS download path</h3>
+  <p>
+    On iOS Safari, downloads land in the system Files application rather than
+    the Photos library. Users may save received images to Photos manually from
+    within Files. This is a platform limitation.
+  </p>
+</section>
+
+<!-- ===================== 6. QUICK START ===================== -->
+<section class="page-break">
+  <h2>6. Quick Start Guide</h2>
+
+  <ol class="steps">
+    <li>
+      <strong>Open the service.</strong> Both devices visit
+      <strong>https://snapshare-share.vercel.app</strong>. The first visit on a
+      device generates and remembers a six-character pairing code.
+    </li>
+    <li>
+      <strong>Pair.</strong> On Device A, expand the QR code (chevron button beside
+      the code). On Device B, scan it with the OS camera or the in-app scanner.
+      Alternatively, type Device A's six-character code into Device B's pairing
+      field — auto-capitalised and auto-hyphenated as you type.
+    </li>
+    <li>
+      <strong>Confirm.</strong> Both devices show <em>Paired devices (1)</em> with
+      a green dot beside the partner's name.
+    </li>
+    <li>
+      <strong>Send.</strong> Drag a file onto the drop zone (or anywhere on the
+      desktop page), tap <em>Add files</em>, paste with Ctrl+V, or — if the
+      clipboard toggle is on — simply copy on your other application and return
+      to the SnapShare tab.
+    </li>
+    <li>
+      <strong>Receive.</strong> The other side shows the incoming row with a
+      live progress bar. On completion, the file downloads automatically; for
+      text payloads, the row becomes tap-to-copy.
+    </li>
+    <li>
+      <strong>Resend or cancel.</strong> Completed sender rows offer
+      <em>Reenviar</em>. In-progress rows offer the cancel cross. Either side may
+      cancel; both sides observe the cancellation cleanly.
+    </li>
+  </ol>
+</section>
+
+<!-- ===================== 7. SPECS ===================== -->
+<section>
+  <h2>7. Technical Specifications</h2>
+
+  <h3>7.1 Stack</h3>
+  <table>
+    <tbody>
+      <tr><td>Language</td><td>TypeScript 5.6</td></tr>
+      <tr><td>UI framework</td><td>React 18 with hooks</td></tr>
+      <tr><td>Build tool</td><td>Vite 5.4</td></tr>
+      <tr><td>Styling</td><td>Tailwind CSS 3.4 (class-based dark mode)</td></tr>
+      <tr><td>Iconography</td><td>Lucide</td></tr>
+      <tr><td>P2P library</td><td>PeerJS 1.5</td></tr>
+      <tr><td>QR generation</td><td>qrcode.react 4.1</td></tr>
+      <tr><td>QR decoding</td><td>qr-scanner (web worker, jsQR-based)</td></tr>
+      <tr><td>Hosting</td><td>Vercel (static, free tier)</td></tr>
+      <tr><td>Bundle size</td><td>~100&nbsp;KB JavaScript gzipped, ~6&nbsp;KB CSS gzipped</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.2 Browser support</h3>
+  <table>
+    <thead><tr><th>Browser</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Chrome / Edge (desktop)</td><td>Full support including <span class="mono">clipboard.read()</span> for images</td></tr>
+      <tr><td>Chrome (Android)</td><td>Full support including Wake Lock and PWA install</td></tr>
+      <tr><td>Safari (macOS)</td><td>Full transfer support; clipboard image read varies by version</td></tr>
+      <tr><td>Safari (iOS 16.4+)</td><td>Transfer and Wake Lock supported; downloads land in the Files app</td></tr>
+      <tr><td>Firefox</td><td>Transfer supported; some clipboard rich types limited</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.3 Transfer chunking</h3>
+  <table>
+    <tbody>
+      <tr><td>Chunk size</td><td>16,384 bytes (16&nbsp;KB)</td></tr>
+      <tr><td>High water mark</td><td>16&nbsp;MB buffered amount</td></tr>
+      <tr><td>Low water mark</td><td>1&nbsp;MB buffered amount</td></tr>
+      <tr><td>Progress reporting</td><td>Every 1% or 64&nbsp;KB, whichever is greater</td></tr>
+      <tr><td>Text payload cap for tap-to-copy</td><td>1&nbsp;MB</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 8. LEGAL ===================== -->
+<section class="page-break">
+  <h2>8. Legal Notice &amp; License</h2>
+
+  <h3>8.1 License</h3>
+  <p>
+    SnapShare is distributed under the <strong>MIT License</strong>. In plain
+    terms: anyone may use, copy, modify, merge, publish, distribute, sublicense,
+    or sell copies of the software, provided that the copyright notice and this
+    license notice appear in all copies or substantial portions of the software.
+  </p>
+
+  <h3>8.2 Disclaimer of warranty</h3>
+  <p>
+    <strong>The software is provided "as is", without warranty of any kind,
+    express or implied,</strong> including but not limited to the warranties of
+    merchantability, fitness for a particular purpose, and non-infringement. In
+    no event shall the author or copyright holders be liable for any claim,
+    damages, or other liability, whether in an action of contract, tort, or
+    otherwise, arising from, out of, or in connection with the software or the
+    use or other dealings in the software.
+  </p>
+
+  <h3>8.3 Data and content responsibility</h3>
+  <p>
+    SnapShare does not store, mediate, or moderate any content transferred
+    between user devices. Users are solely responsible for the legality and
+    appropriateness of files they choose to send. The operator has no technical
+    means to monitor, intercept, retain, or recover transferred content.
+  </p>
+
+  <h3>8.4 Third-party services</h3>
+  <p>
+    SnapShare relies on the PeerJS public broker for connection signalling and
+    Google's public STUN servers for NAT discovery. Use of these services is
+    governed by their respective terms. The operator of SnapShare has no
+    contractual relationship with these providers and offers no service-level
+    guarantee on their behalf.
+  </p>
+
+  <h3>8.5 Compliance</h3>
+  <p>
+    Because SnapShare does not collect, process, or store any personal data
+    on behalf of users, no GDPR/CCPA controller-processor relationship arises
+    out of standard use. The only data that lives at all is on the user's own
+    device, in <span class="mono">localStorage</span>, under the user's exclusive
+    control.
+  </p>
+</section>
+
+<!-- ===================== 9. AUTHOR ===================== -->
+<section>
+  <h2>9. About the Author</h2>
+
+  <div class="sig-block">
+    <h3>Leonel Ferreira</h3>
+    <p>
+      Software engineer and operator based in <strong>Luanda, Angola</strong>.
+      Founder of independent product work spanning e-commerce
+      (<em>Geosstore</em>), urban mobility (<em>BAZA</em>), graphics tooling
+      (<em>Klip</em>), productivity (<em>Lume</em>), and now peer-to-peer file
+      transfer (<em>SnapShare</em>).
+    </p>
+
+    <p>
+      <strong>Portfolio &nbsp;·&nbsp;</strong>
+      <span class="mono">leonelferreira.vercel.app</span>
+    </p>
+    <p>
+      <strong>Source code &nbsp;·&nbsp;</strong>
+      <span class="mono">github.com/leonelferreira0373/snapshare</span>
+    </p>
+    <p>
+      <strong>Contact &nbsp;·&nbsp;</strong>
+      <span class="mono">leonelferreira0373@gmail.com</span>
+    </p>
+
+    <hr class="rule">
+
+    <p class="small">
+      This document and the underlying software were authored by Leonel
+      Ferreira. SnapShare is offered freely to the public in the interest of
+      a more private and frictionless way to move files between devices.
+      Bug reports, feature requests, and contributions are welcome through
+      the GitHub repository above.
+    </p>
+  </div>
+
+  <p class="small" style="text-align: center; margin-top: 24pt;">
+    &mdash; END OF DOCUMENT &mdash;
+  </p>
+</section>
+
+</body>
+</html>
